@@ -7,12 +7,10 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#007aff" />
   <title>Escáner Inventario</title>
+
   <style>
-    * { 
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-    body { 
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       margin: 0;
       padding: 12px;
@@ -20,20 +18,15 @@
       margin: 0 auto;
       background: #f5f5f5;
     }
-    h1 { 
-      font-size: 22px;
-      margin: 0 0 16px;
-      color: #1a1a1a;
-      text-align: center;
-    }
-    .card { 
+    h1 { font-size: 22px; margin: 0 0 16px; color: #1a1a1a; text-align: center; }
+    .card {
       background: #fff;
       border-radius: 16px;
       padding: 16px;
       margin-bottom: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    button { 
+    button {
       width: 100%;
       padding: 16px;
       border-radius: 12px;
@@ -46,26 +39,13 @@
       margin-bottom: 10px;
       transition: all 0.2s;
     }
-    button:active { 
-      transform: scale(0.97);
-    }
-    button:disabled { 
-      opacity: 0.5;
-      background: #ccc;
-      cursor: not-allowed;
-    }
-    button.danger {
-      background: #ff3b30;
-    }
-    button.secondary {
-      background: #fff;
-      color: #007aff;
-      border: 2px solid #007aff;
-    }
-    button.warning {
-      background: #ff9500;
-    }
-    input { 
+    button:active { transform: scale(0.97); }
+    button:disabled { opacity: 0.5; background: #ccc; cursor: not-allowed; }
+    button.danger { background: #ff3b30; }
+    button.secondary { background: #fff; color: #007aff; border: 2px solid #007aff; }
+    button.warning { background: #ff9500; }
+
+    input {
       width: 100%;
       padding: 14px;
       border-radius: 10px;
@@ -80,32 +60,13 @@
       border-color: #007aff;
       box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
     }
-    label { 
-      display: block;
-      color: #666;
-      font-size: 14px;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-    .muted { 
-      color: #666;
-      font-size: 14px;
-      margin: 8px 0;
-      line-height: 1.4;
-    }
-    .ok { 
-      color: #34c759;
-      font-weight: 600;
-    }
-    .err { 
-      color: #ff3b30;
-      font-weight: 600;
-    }
-    .warn { 
-      color: #ff9500;
-      font-weight: 600;
-    }
-    .pill { 
+    label { display: block; color: #666; font-size: 14px; margin-bottom: 6px; font-weight: 600; }
+    .muted { color: #666; font-size: 14px; margin: 8px 0; line-height: 1.4; }
+    .ok { color: #34c759; font-weight: 600; }
+    .err { color: #ff3b30; font-weight: 600; }
+    .warn { color: #ff9500; font-weight: 600; }
+
+    .pill {
       display: inline-block;
       padding: 6px 14px;
       border: 2px solid #ddd;
@@ -114,6 +75,7 @@
       font-weight: 700;
       margin: 8px auto;
     }
+
     .code-display {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
@@ -137,6 +99,7 @@
       letter-spacing: 1px;
       margin-bottom: 4px;
     }
+
     .stats {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -150,17 +113,9 @@
       text-align: center;
       color: white;
     }
-    .stat-value {
-      font-size: 32px;
-      font-weight: 800;
-      line-height: 1;
-    }
-    .stat-label {
-      font-size: 12px;
-      opacity: 0.9;
-      margin-top: 6px;
-      font-weight: 600;
-    }
+    .stat-value { font-size: 32px; font-weight: 800; line-height: 1; }
+    .stat-label { font-size: 12px; opacity: 0.9; margin-top: 6px; font-weight: 600; }
+
     .hint-container {
       text-align: center;
       min-height: 40px;
@@ -168,15 +123,15 @@
       align-items: center;
       justify-content: center;
     }
+
     #reader {
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       position: relative;
     }
-    #reader video {
-      border-radius: 12px;
-    }
+    #reader video { border-radius: 12px; }
+
     .camera-info {
       background: #e8f5e9;
       padding: 10px;
@@ -187,6 +142,7 @@
       text-align: center;
       font-weight: 600;
     }
+
     .scanning-indicator {
       background: #fff3e0;
       padding: 8px;
@@ -197,10 +153,8 @@
       text-align: center;
       animation: pulse 2s infinite;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
     .manual-input-section {
       margin-top: 12px;
       padding-top: 12px;
@@ -208,6 +162,7 @@
     }
   </style>
 </head>
+
 <body>
   <h1>📦 Escáner de Inventario</h1>
 
@@ -247,8 +202,7 @@
   <div class="card">
     <button id="btnStart">📷 Iniciar Escáner</button>
     <button id="btnStop" class="danger" style="display:none;">⏹️ Detener Cámara</button>
-    
-    <!-- Botón para entrada manual -->
+
     <button id="btnManual" class="secondary">⌨️ Escribir Código Manualmente</button>
 
     <div class="code-display">
@@ -256,7 +210,6 @@
       <div id="lastCode">—</div>
     </div>
 
-    <!-- Sección de entrada manual (oculta por defecto) -->
     <div id="manualSection" class="manual-input-section" style="display:none;">
       <label>✏️ Escribir código de barras</label>
       <input id="manualCode" type="text" placeholder="Escribe o pega el código aquí" />
@@ -291,6 +244,7 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <script>
+    // Endpoint y token (recuerda: el token aquí NO es secreto real)
     const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzuewP1k1PXI44KLdlkAm25zS4QqHgkfzfRbbQV5G6xl6UZIOSfktjaPIEv0yx0otZc/exec";
     const SECRET_TOKEN = "refaccionaria_2025_token_secreto";
 
@@ -346,23 +300,24 @@
       if (kind === "err") codeHintEl.style.borderColor = "#ff3b30";
     }
 
-    function onScanSuccess(decodedText, decodedResult) {
-      console.log("Código detectado:", decodedText);
+    function onScanSuccess(decodedText) {
       if (decodedText && decodedText !== lastCode) {
         lastCode = decodedText;
         lastCodeEl.textContent = lastCode;
         btnSend.disabled = false;
         showHint("✓ Listo para enviar", "ok");
         setStatus("✓ Código leído. Verifica datos y envía", "ok");
+
         scanningIndicator.textContent = "✅ ¡Código detectado!";
         scanningIndicator.style.background = "#e8f5e9";
         scanningIndicator.style.color = "#2e7d32";
+
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       }
     }
 
-    function onScanError(errorMessage) {
-      // Ignorar errores (son normales mientras escanea)
+    function onScanError(_) {
+      // Ignorar errores (normales mientras escanea)
     }
 
     async function startScanner() {
@@ -377,25 +332,26 @@
         scanningIndicator.style.color = "#e65100";
         scanningIndicator.textContent = "🔍 Buscando código... mantén quieto el teléfono";
 
+        // Si hay un escáner activo, deténlo primero
+        if (html5QrcodeScanner) {
+          try { await html5QrcodeScanner.stop(); } catch (_) {}
+        }
+
         html5QrcodeScanner = new Html5Qrcode("reader");
 
         const cameras = await Html5Qrcode.getCameras();
-        console.log("Cámaras:", cameras.map(c => c.label));
+        if (!cameras || cameras.length === 0) throw new Error("No se detectaron cámaras");
 
-        // Configuración MEJORADA para mejor detección
         const config = {
-          fps: 20, // ⬆️ Aumentado de 10 a 20 (más intentos por segundo)
+          fps: 20,
           qrbox: function(viewfinderWidth, viewfinderHeight) {
-            // Área de escaneo MÁS GRANDE y flexible
             return {
               width: Math.min(viewfinderWidth * 0.9, 400),
               height: Math.min(viewfinderHeight * 0.4, 200)
             };
           },
           aspectRatio: 1.777778,
-          // TODOS los formatos de códigos de barras
           formatsToSupport: [
-            Html5QrcodeSupportedFormats.QR_CODE,
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.CODE_128,
@@ -407,22 +363,13 @@
             Html5QrcodeSupportedFormats.ITF,
             Html5QrcodeSupportedFormats.CODABAR,
             Html5QrcodeSupportedFormats.RSS_14,
-            Html5QrcodeSupportedFormats.DATA_MATRIX,
-            Html5QrcodeSupportedFormats.AZTEC,
             Html5QrcodeSupportedFormats.PDF_417
           ],
-          // Habilitar detector de códigos de barras nativo
-          experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
-          },
-          // Configuración de video para mejor calidad
-          videoConstraints: {
-            facingMode: "environment",
-            aspectRatio: 1.777778,
-            focusMode: "continuous" // Enfoque continuo
-          }
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+          // Nota: evito videoConstraints avanzados para máxima compatibilidad iOS
         };
 
+        // Intenta environment primero
         try {
           await html5QrcodeScanner.start(
             { facingMode: "environment" },
@@ -430,28 +377,19 @@
             onScanSuccess,
             onScanError
           );
-          
           cameraInfo.style.display = "block";
           cameraInfo.textContent = "📹 Cámara trasera activa";
-          
         } catch (envError) {
-          console.warn("Usando fallback de cámara:", envError);
-          
-          const backCamera = cameras.find(cam => 
-            cam.label.toLowerCase().includes('back') ||
-            cam.label.toLowerCase().includes('rear') ||
-            cam.label.toLowerCase().includes('environment')
-          ) || cameras[cameras.length - 1];
-          
+          // Fallback: última cámara suele ser la trasera
+          const backCamera = cameras[cameras.length - 1];
           await html5QrcodeScanner.start(
             backCamera.id,
             config,
             onScanSuccess,
             onScanError
           );
-          
           cameraInfo.style.display = "block";
-          cameraInfo.textContent = `📹 ${backCamera.label}`;
+          cameraInfo.textContent = `📹 ${backCamera.label || "Cámara"}`;
         }
 
         btnStart.style.display = "none";
@@ -461,7 +399,6 @@
         setStatus("📷 Escanea el código de barras");
 
       } catch (err) {
-        console.error("Error:", err);
         btnStart.disabled = false;
         btnStart.textContent = "📷 Iniciar Escáner";
         readerCard.style.display = "none";
@@ -475,7 +412,7 @@
           await html5QrcodeScanner.stop();
           html5QrcodeScanner = null;
         }
-        
+
         readerCard.style.display = "none";
         cameraInfo.style.display = "none";
         scanningIndicator.style.display = "none";
@@ -490,7 +427,7 @@
       }
     }
 
-    // Funciones de entrada manual
+    // Manual input
     function showManualInput() {
       manualSection.style.display = "block";
       manualCodeInput.value = "";
@@ -511,14 +448,13 @@
         setStatus("❌ Escribe un código", "err");
         return;
       }
-      
+
       lastCode = code;
       lastCodeEl.textContent = lastCode;
       btnSend.disabled = false;
       showHint("✓ Código ingresado manualmente", "ok");
       setStatus("✓ Código listo. Verifica datos y envía", "ok");
       hideManualInput();
-      
       if (navigator.vibrate) navigator.vibrate(50);
     }
 
@@ -547,9 +483,7 @@
         setStatus("Enviando a Google Sheets...");
         showHint("", "");
 
-        if (deviceEl.value) {
-          localStorage.setItem('lastDevice', deviceEl.value);
-        }
+        if (deviceEl.value) localStorage.setItem('lastDevice', deviceEl.value);
 
         const payload = {
           token: SECRET_TOKEN,
@@ -570,26 +504,24 @@
 
         const data = await res.json().catch(() => ({}));
 
-        if (data.error && data.error.includes("Token")) {
-          showHint("❌ Error de seguridad", "err");
-          setStatus("❌ Token inválido. Contacta al administrador", "err");
-          btnSend.textContent = originalText;
-          btnSend.disabled = false;
-          return;
-        }
-
         if (!res.ok || !data.ok) {
           const msg = data?.error || ("HTTP " + res.status);
-          if (String(msg).toLowerCase().includes("falta descripción") || 
-              String(msg).toLowerCase().includes("falta desc")) {
+
+          if (String(msg).toLowerCase().includes("token")) {
+            showHint("❌ Error de seguridad", "err");
+            setStatus("❌ Token inválido. Contacta al administrador", "err");
+          } else if (String(msg).toLowerCase().includes("descripción")) {
             showHint("⚠️ Producto nuevo: llena Descripción", "warn");
             setStatus("Este código es NUEVO. Escribe la Descripción y envía de nuevo", "warn");
             descEl.focus();
-            btnSend.textContent = originalText;
-            btnSend.disabled = false;
-            return;
+          } else {
+            showHint("❌ Error al enviar", "err");
+            setStatus("❌ Error: " + msg, "err");
           }
-          throw new Error(msg);
+
+          btnSend.textContent = originalText;
+          btnSend.disabled = false;
+          return;
         }
 
         sessionCount++;
@@ -603,11 +535,14 @@
           const prev = data.previousStock || 0;
           showHint(`${prev} → ${data.stock}`, "ok");
           setStatus(`✅ Stock actualizado: ${prev} + ${qtyEl.value} = ${data.stock}`, "ok");
+        } else {
+          showHint("✓ Guardado", "ok");
+          setStatus("✅ Guardado", "ok");
         }
 
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
-        // Resetear indicador de escaneo si está visible
+        // Reset UI
         if (scanningIndicator.style.display !== "none") {
           scanningIndicator.textContent = "🔍 Buscando código... mantén quieto el teléfono";
           scanningIndicator.style.background = "#fff3e0";
@@ -623,9 +558,7 @@
         btnSend.disabled = true;
         btnSend.textContent = originalText;
 
-        setTimeout(() => {
-          showHint("", "");
-        }, 3000);
+        setTimeout(() => showHint("", ""), 3000);
 
       } catch (e) {
         btnSend.disabled = false;
@@ -636,22 +569,17 @@
       }
     }
 
-    // Event listeners
+    // Listeners
     btnStart.addEventListener("click", startScanner);
     btnStop.addEventListener("click", stopScanner);
     btnSend.addEventListener("click", sendLastCode);
+
     btnManual.addEventListener("click", showManualInput);
     btnConfirmManual.addEventListener("click", confirmManualCode);
     btnCancelManual.addEventListener("click", hideManualInput);
 
-    // Enter en input manual
     manualCodeInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") confirmManualCode();
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !btnSend.disabled) sendLastCode();
-      if (e.key === 'Escape' && !btnStop.disabled) stopScanner();
     });
   </script>
 </body>
