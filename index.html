@@ -173,9 +173,42 @@
       align-items: center;
       justify-content: center;
     }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      color: white;
+      font-size: 18px;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .spinner {
+      border: 4px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top: 4px solid white;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <div>Cargando escáner...</div>
+  </div>
+
   <h1>📦 Escáner de Inventario</h1>
 
   <div class="card">
@@ -235,7 +268,8 @@
     </p>
   </div>
 
-  <script src="https://unpkg.com/@zxing/browser@latest"></script>
+  <!-- ZXing con versión específica (más confiable que @latest) -->
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
 
   <script>
     const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzuewP1k1PXI44KLdlkAm25zS4QqHgkfzfRbbQV5G6xl6UZIOSfktjaPIEv0yx0otZc/exec";
@@ -247,6 +281,7 @@
     const statusEl = document.getElementById("status");
     const sessionCountEl = document.getElementById("sessionCount");
     const lastStockEl = document.getElementById("lastStock");
+    const loadingOverlay = document.getElementById("loadingOverlay");
 
     const btnStart = document.getElementById("btnStart");
     const btnStop = document.getElementById("btnStop");
@@ -262,6 +297,37 @@
     let codeReader = null;
     let lastCode = "";
     let sessionCount = 0;
+    let isLibraryReady = false;
+
+    // Esperar a que ZXing se cargue completamente
+    function waitForZXing() {
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 50; // 5 segundos máximo
+
+        const checkZXing = setInterval(() => {
+          attempts++;
+          
+          if (typeof ZXing !== 'undefined') {
+            clearInterval(checkZXing);
+            isLibraryReady = true;
+            loadingOverlay.style.display = 'none';
+            setStatus("💡 Presiona 'Iniciar Cámara' para comenzar");
+            resolve();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkZXing);
+            loadingOverlay.innerHTML = '<div style="color:#ff3b30; text-align:center;">❌ Error al cargar librería<br><small>Recarga la página</small></div>';
+            reject(new Error("ZXing no se pudo cargar"));
+          }
+        }, 100);
+      });
+    }
+
+    // Inicializar cuando la librería esté lista
+    waitForZXing().catch(err => {
+      console.error("Error cargando ZXing:", err);
+      setStatus("❌ Error al cargar escáner. Recarga la página.", "err");
+    });
 
     // Recuperar dispositivo guardado
     const savedDevice = localStorage.getItem('lastDevice');
@@ -288,6 +354,11 @@
 
     async function startScanner() {
       try {
+        if (!isLibraryReady) {
+          setStatus("⏳ Cargando librería del escáner...", "warn");
+          await waitForZXing();
+        }
+
         btnStart.disabled = true;
         btnStart.textContent = "⏳ Iniciando...";
         setStatus("Solicitando acceso a cámara...");
@@ -468,8 +539,6 @@
       if (e.key === 'Enter' && !btnSend.disabled) sendLastCode();
       if (e.key === 'Escape' && !btnStop.disabled) stopScanner();
     });
-
-    setStatus("💡 Presiona 'Iniciar Cámara' para comenzar");
   </script>
 </body>
 </html>
