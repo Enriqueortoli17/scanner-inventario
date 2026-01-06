@@ -152,48 +152,58 @@
       device: document.getElementById('device')
     };
 
-    // 1. INICIAR CÁMARA CON CONFIGURACIÓN "A PRUEBA DE BALAS"
+    // 1. INICIAR CÁMARA (VERSIÓN FLEXIBLE)
     btnStart.addEventListener('click', async () => {
       document.getElementById('reader-wrapper').style.display = 'block';
       btnStart.style.display = 'none';
-      showMsg("Iniciando cámara HD...", "normal");
+      showMsg("Iniciando cámara...", "normal");
 
       html5QrCode = new Html5Qrcode("reader");
 
       const config = {
-        fps: 30, // Mayor velocidad de cuadros para evitar borrosidad por movimiento
-        qrbox: { width: 250, height: 150 }, // Área de escaneo
-        aspectRatio: 1.0,
-        // IMPORTANTE: Definimos todos los formatos posibles
-        formatsToSupport: [ 
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E 
-        ]
+        fps: 20, // Bajamos un poco para asegurar compatibilidad
+        qrbox: { width: 250, height: 150 },
+        aspectRatio: 1.0
       };
 
       try {
-        // SOLICITAMOS CÁMARA TRASERA CON ALTA RESOLUCIÓN
+        // INTENTO 1: Configuración Ideal (Cámara trasera, HD)
         await html5QrCode.start(
           { 
             facingMode: "environment",
-            focusMode: "continuous", // Intenta enfocar siempre
-            width: { min: 1024, ideal: 1280, max: 1920 }, // Forzamos HD
-            height: { min: 768, ideal: 720, max: 1080 }
+            width: { ideal: 1280 }, // "Idealmente" HD, pero no obligatorio
+            height: { ideal: 720 } 
           },
           config,
           onScanSuccess,
-          (error) => { /* Errores de frame ignorados */ }
+          () => {}
         );
-        showMsg("Cámara activa. Apunta al código.", "normal");
+        showMsg("Cámara activa.", "normal");
+
       } catch (err) {
-        console.error(err);
-        showMsg("Error: No se pudo abrir la cámara. Revisa permisos.", "error");
-        stopCamera();
+        console.warn("Fallo intento HD, probando modo básico...", err);
+        
+        try {
+          // INTENTO 2: Configuración Básica (Cualquier cámara trasera)
+          await html5QrCode.start(
+            { facingMode: "environment" }, 
+            config, 
+            onScanSuccess, 
+            () => {}
+          );
+           showMsg("Cámara activa (Modo Básico).", "normal");
+           
+        } catch (err2) {
+          // Si falla todo, mostramos el error REAL
+          console.error(err2);
+          showMsg("Error crítico: " + err2.name, "error");
+          
+          // Ayuda visual para el usuario según el error
+          if(err2.name == "NotAllowedError") alert("❌ PERMISO DENEGADO: Tienes que darle 'Permitir' al navegador para usar la cámara.");
+          if(err2.name == "NotFoundError") alert("❌ NO HAY CÁMARA: No se detecta ninguna cámara en este dispositivo.");
+          
+          stopCamera();
+        }
       }
     });
 
@@ -288,4 +298,5 @@
   </script>
 </body>
 </html>
+
 
