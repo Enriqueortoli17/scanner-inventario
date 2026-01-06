@@ -3,76 +3,71 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Escáner Pro - Inventario</title>
+  <title>Escáner Inventario Pro</title>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      margin: 0; padding: 12px; background: #f0f2f5; color: #1c1e21;
+      font-family: -apple-system, system-ui, sans-serif;
+      margin: 0; padding: 12px; background: #f4f7f9; color: #333;
     }
     .card {
-      background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     }
-    h1 { font-size: 20px; text-align: center; margin: 0 0 15px; color: #007aff; }
+    h1 { font-size: 22px; text-align: center; color: #007aff; margin: 0 0 20px; }
     
-    /* Stats Row */
-    .stats { display: flex; gap: 10px; margin-bottom: 15px; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
     .stat-box {
-      flex: 1; background: linear-gradient(135deg, #007aff, #0056b3);
-      color: white; padding: 12px; border-radius: 10px; text-align: center;
+      background: linear-gradient(135deg, #007aff, #0056b3);
+      color: white; padding: 15px; border-radius: 12px; text-align: center;
     }
-    .stat-value { font-size: 24px; font-weight: bold; }
-    .stat-label { font-size: 10px; text-transform: uppercase; opacity: 0.9; }
+    .stat-value { font-size: 28px; font-weight: 800; }
+    .stat-label { font-size: 11px; opacity: 0.9; text-transform: uppercase; }
 
-    /* Inputs */
-    label { display: block; font-size: 12px; font-weight: 600; color: #65676b; margin: 8px 0 4px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #666; margin: 10px 0 5px; }
     input {
-      width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px;
+      width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px;
       font-size: 16px; outline: none; transition: border-color 0.2s;
     }
-    input:focus { border-color: #007aff; }
+    input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
 
-    /* Buttons */
     button {
-      width: 100%; padding: 15px; border-radius: 10px; border: none;
-      font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px;
-      transition: all 0.2s active;
+      width: 100%; padding: 16px; border-radius: 12px; border: none;
+      font-size: 17px; font-weight: 600; cursor: pointer; margin-top: 10px;
+      transition: transform 0.1s;
     }
+    button:active { transform: scale(0.98); }
     .btn-main { background: #007aff; color: white; }
-    .btn-secondary { background: #e4e6eb; color: #050505; }
+    .btn-secondary { background: #f0f2f5; color: #007aff; border: 1px solid #007aff; }
     .btn-danger { background: #ff3b30; color: white; }
     button:disabled { background: #ccc; opacity: 0.6; }
 
-    /* Scanner UI */
     #reader-container { 
-      position: relative; border-radius: 12px; overflow: hidden; 
-      background: #000; display: none; margin-bottom: 15px;
+      position: relative; border-radius: 16px; overflow: hidden; 
+      background: #000; display: none; margin: 15px 0;
     }
     #reader { width: 100%; }
     .scanner-laser {
       position: absolute; top: 50%; left: 10%; right: 10%; height: 2px;
-      background: rgba(255, 0, 0, 0.6); box-shadow: 0 0 8px red;
+      background: rgba(255, 0, 0, 0.7); box-shadow: 0 0 10px red;
       animation: scan 2s infinite ease-in-out; z-index: 10;
     }
-    @keyframes scan {
-      0%, 100% { transform: translateY(-40px); }
-      50% { transform: translateY(40px); }
-    }
+    @keyframes scan { 0%, 100% { transform: translateY(-45px); } 50% { transform: translateY(45px); } }
 
-    .code-banner {
-      background: #f8f9fa; border-left: 4px solid #007aff;
-      padding: 12px; margin: 10px 0; font-family: monospace; font-size: 18px;
-      text-align: center; border-radius: 4px;
+    .code-display {
+      background: #f8f9fa; border: 2px dashed #007aff; border-radius: 10px;
+      padding: 15px; margin: 15px 0; text-align: center;
     }
-    .status-msg { text-align: center; font-size: 14px; margin: 10px 0; min-height: 20px; }
-    .ok { color: #28a745; } .err { color: #dc3545; }
+    .code-value { font-family: monospace; font-size: 22px; font-weight: bold; color: #007aff; }
+    .status-msg { text-align: center; font-size: 14px; padding: 10px; }
+    .ok { color: #28a745; font-weight: 600; }
+    .err { color: #dc3545; font-weight: 600; }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h1>📦 Refaccionaria Inventario</h1>
+    <h1>📦 Escáner Refaccionaria</h1>
     <div class="stats">
       <div class="stat-box">
         <div class="stat-value" id="sessionCount">0</div>
@@ -80,40 +75,48 @@
       </div>
       <div class="stat-box">
         <div class="stat-value" id="lastStock">—</div>
-        <div class="stat-label">Stock Actual</div>
+        <div class="stat-label">Último Stock</div>
       </div>
     </div>
     
-    <label>📱 Dispositivo/Ubicación</label>
-    <input id="device" type="text" placeholder="Ej. Mostrador A" />
+    <label>📱 Ubicación / Dispositivo</label>
+    <input id="device" type="text" placeholder="Ej. Mostrador 1" />
     
-    <label>🔢 Cantidad a sumar</label>
+    <label>🔢 Cantidad</label>
     <input id="qty" type="number" value="1" min="1" />
   </div>
 
   <div class="card">
-    <button id="btnStart" class="btn-main">📷 Iniciar Cámara</button>
+    <button id="btnStart" class="btn-main">📷 Abrir Cámara (QR/Barras)</button>
     
     <div id="reader-container">
       <div id="reader"></div>
       <div class="scanner-laser"></div>
-      <button id="btnStop" class="btn-danger" style="margin: 10px; width: calc(100% - 20px);">Detener</button>
-      <button id="btnTorch" class="btn-secondary" style="margin: 0 10px 10px; width: calc(100% - 20px); display:none;">🔦 Linterna</button>
+      <button id="btnStop" class="btn-danger" style="margin: 10px; width: calc(100% - 20px);">Cerrar Cámara</button>
+      <button id="btnTorch" class="btn-secondary" style="margin: 0 10px 10px; width: calc(100% - 20px); display:none;">🔦 Encender Luz</button>
     </div>
 
-    <div class="code-banner" id="lastCode">Esperando código...</div>
-    <div id="status" class="status-msg">Selecciona una acción</div>
-
-    <div id="extraFields" style="display:none; border-top: 1px solid #eee; padding-top: 10px;">
-      <p style="font-size:12px; color: #ff9500; font-weight:bold;">✨ ¡Nuevo producto detectado! Llena esto:</p>
-      <label>Descripción *</label>
-      <input id="desc" type="text" placeholder="Ej. Filtro de Aceite PH2" />
-      <label>Marca</label>
-      <input id="brand" type="text" placeholder="Ej. Fram" />
+    <div class="code-display">
+      <div style="font-size: 11px; color: #666; margin-bottom: 5px;">CÓDIGO DETECTADO</div>
+      <div class="code-value" id="lastCode">---</div>
     </div>
 
-    <button id="btnSend" class="btn-main" style="margin-top:20px;" disabled>✅ Enviar a Inventario</button>
-    <button id="btnManual" class="btn-secondary">⌨️ Ingreso Manual</button>
+    <div id="status" class="status-msg">Listo para escanear</div>
+
+    <label>🏷️ Marca</label>
+    <input id="brand" type="text" placeholder="Ej. NGK" />
+    
+    <label>📝 Descripción (Obligatoria para nuevos)</label>
+    <input id="desc" type="text" placeholder="Ej. Bujía de Iridium" />
+    
+    <label>🚗 Modelo / Motor</label>
+    <input id="model" type="text" placeholder="Ej. Nissan NP300" />
+
+    <label>💬 Nota</label>
+    <input id="note" type="text" placeholder="Opcional..." />
+
+    <button id="btnSend" class="btn-main" style="margin-top:20px; background: #34c759;" disabled>✅ Enviar a Inventario</button>
+    <button id="btnManual" class="btn-secondary">⌨️ Código Manual</button>
   </div>
 
   <audio id="beepSound" src="https://assets.mixkit.co/active_storage/sfx/766/766-preview.mp3"></audio>
@@ -121,7 +124,7 @@
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
     const CONFIG = {
-      url: "https://script.google.com/macros/s/AKfycbzuewP1k1PXI44KLdlkAm25zS4QqHgkfzfRbbQV5G6xl6UZIOSfktjaPIEv0yx0otZc/exec", // REEMPLAZAR
+      url: "https://script.google.com/macros/s/AKfycbzuewP1k1PXI44KLdlkAm25zS4QqHgkfzfRbbQV5G6xl6UZIOSfktjaPIEv0yx0otZc/exec",
       token: "refaccionaria_2025_token_secreto"
     };
 
@@ -129,64 +132,64 @@
     let currentCode = "";
     let isTorchOn = false;
 
-    // Elementos
     const btnStart = document.getElementById('btnStart');
     const btnStop = document.getElementById('btnStop');
     const btnSend = document.getElementById('btnSend');
     const readerCont = document.getElementById('reader-container');
     const statusEl = document.getElementById('status');
     const lastCodeEl = document.getElementById('lastCode');
-    const extraFields = document.getElementById('extraFields');
 
-    async function onScanSuccess(decodedText) {
+    function onScanSuccess(decodedText) {
       if (decodedText === currentCode) return;
       
       currentCode = decodedText;
       lastCodeEl.textContent = currentCode;
-      document.getElementById('beepSound').play();
+      document.getElementById('beepSound').play().catch(()=>{});
       
       if (navigator.vibrate) navigator.vibrate(100);
       
       statusEl.className = "status-msg ok";
-      statusEl.textContent = "✅ Código detectado con éxito";
+      statusEl.textContent = "✅ Código detectado. Verifica y envía.";
       btnSend.disabled = false;
-      
-      // Auto-detener cámara para ahorrar batería tras éxito
       stopCamera();
     }
 
     async function startCamera() {
       readerCont.style.display = 'block';
       btnStart.style.display = 'none';
+      statusEl.textContent = "Iniciando cámara...";
       
       html5QrCode = new Html5Qrcode("reader");
+      
       const config = { 
-        fps: 25, 
-        qrbox: { width: 280, height: 180 },
-        aspectRatio: 1.0,
+        fps: 20, 
+        qrbox: { width: 250, height: 150 },
         experimentalFeatures: { useBarCodeDetectorIfSupported: true } 
       };
 
       try {
-        await html5QrCode.start(
-          { facingMode: "environment" }, 
-          config, 
-          onScanSuccess
-        );
+        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
         
-        // Soporte de Linterna
-        const track = html5QrCode.getRunningTrack();
-        if (track && track.getCapabilities().torch) {
-          const torchBtn = document.getElementById('btnTorch');
-          torchBtn.style.display = 'block';
-          torchBtn.onclick = async () => {
-            isTorchOn = !isTorchOn;
-            await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
-          };
-        }
+        // CORRECCIÓN ERROR getRunningTrack:
+        setTimeout(() => {
+            try {
+                const track = html5QrCode.getRunningTrack();
+                if (track && track.getCapabilities().torch) {
+                    const torchBtn = document.getElementById('btnTorch');
+                    torchBtn.style.display = 'block';
+                    torchBtn.onclick = async () => {
+                        isTorchOn = !isTorchOn;
+                        await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+                        torchBtn.textContent = isTorchOn ? "🚫 Apagar Luz" : "🔦 Encender Luz";
+                    };
+                }
+            } catch(e) { console.log("Linterna no soportada"); }
+        }, 1000);
+
       } catch (err) {
-        statusEl.textContent = "Error de cámara: " + err;
+        statusEl.textContent = "Error: Cámara no disponible o denegada.";
         statusEl.className = "status-msg err";
+        stopCamera();
       }
     }
 
@@ -199,42 +202,45 @@
     }
 
     async function sendData() {
+      const btnOriginalText = btnSend.textContent;
       btnSend.disabled = true;
-      btnSend.textContent = "Enviando...";
+      btnSend.textContent = "⏳ Enviando...";
       
       const payload = {
         token: CONFIG.token,
         barcode: currentCode,
-        qty: parseInt(document.getElementById('qty').value),
+        qty: parseInt(document.getElementById('qty').value) || 1,
         device: document.getElementById('device').value || "Móvil",
-        desc: document.getElementById('desc').value,
-        brand: document.getElementById('brand').value
+        brand: document.getElementById('brand').value || "",
+        desc: document.getElementById('desc').value || "",
+        model: document.getElementById('model').value || "",
+        note: document.getElementById('note').value || ""
       };
 
       try {
-        const response = await fetch(CONFIG.url, {
+        // Usamos text/plain para evitar problemas de CORS con Apps Script
+        await fetch(CONFIG.url, {
           method: 'POST',
-          mode: 'no-cors', // Importante para evitar bloqueos de redirección de GAS
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(payload)
         });
 
-        // Como usamos no-cors, no podemos leer la respuesta JSON directamente.
-        // Simulamos éxito o podrías usar una técnica de "JSONP" si necesitas el stock de vuelta.
-        statusEl.textContent = "📤 Datos enviados a la nube";
+        statusEl.textContent = "✅ ¡Enviado correctamente!";
         statusEl.className = "status-msg ok";
         
-        // Reset
+        // Reset UI
         document.getElementById('sessionCount').textContent = parseInt(document.getElementById('sessionCount').textContent) + 1;
         currentCode = "";
-        lastCodeEl.textContent = "Esperando...";
-        extraFields.style.display = 'none';
+        lastCodeEl.textContent = "---";
+        document.getElementById('note').value = "";
         
       } catch (e) {
-        statusEl.textContent = "Error de red: " + e.message;
+        statusEl.textContent = "❌ Error de conexión.";
         statusEl.className = "status-msg err";
       } finally {
         btnSend.disabled = true;
-        btnSend.textContent = "✅ Enviar a Inventario";
+        btnSend.textContent = btnOriginalText;
       }
     }
 
@@ -242,10 +248,9 @@
     btnStop.onclick = stopCamera;
     btnSend.onclick = sendData;
     btnManual.onclick = () => {
-      const code = prompt("Ingresa el código manualmente:");
+      const code = prompt("Ingresa el código:");
       if (code) onScanSuccess(code);
     };
   </script>
 </body>
 </html>
-
