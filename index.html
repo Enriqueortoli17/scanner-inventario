@@ -174,13 +174,23 @@
       border-radius: 12px;
     }
     .camera-info {
-      background: #f0f0f0;
-      padding: 8px;
+      background: #e8f5e9;
+      padding: 10px;
       border-radius: 8px;
-      font-size: 12px;
-      color: #666;
+      font-size: 13px;
+      color: #2e7d32;
       margin-top: 8px;
       text-align: center;
+      font-weight: 600;
+    }
+    .debug-info {
+      background: #fff3e0;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #e65100;
+      margin-top: 6px;
+      font-family: monospace;
     }
   </style>
 </head>
@@ -221,8 +231,7 @@
   </div>
 
   <div class="card">
-    <button id="btnStart">📷 Iniciar Cámara Trasera</button>
-    <button id="btnSwitch" class="secondary" style="display:none;">🔄 Cambiar Cámara</button>
+    <button id="btnStart">📷 Iniciar Escáner</button>
     <button id="btnStop" class="danger" style="display:none;">⏹️ Detener Cámara</button>
     <button id="btnSend" disabled>✅ Enviar a Inventario</button>
 
@@ -236,16 +245,17 @@
     </div>
 
     <p id="status" class="muted" style="text-align: center; margin-top: 8px;">
-      💡 Presiona 'Iniciar Cámara Trasera' para comenzar
+      💡 Presiona 'Iniciar Escáner' para comenzar
     </p>
   </div>
 
   <div class="card" id="readerCard" style="display:none;">
     <div id="reader"></div>
     <div id="cameraInfo" class="camera-info" style="display:none;"></div>
+    <div id="debugInfo" class="debug-info" style="display:none;"></div>
     <p class="muted" style="margin-top: 12px; text-align: center;">
-      💡 <strong>Acerca el código a 15-20 cm de la cámara</strong><br>
-      Usa buena iluminación para mejor lectura
+      💡 <strong>Acerca el código a 10-20 cm</strong><br>
+      Mantén buena iluminación y el código plano
     </p>
   </div>
 
@@ -262,9 +272,9 @@
     const lastStockEl = document.getElementById("lastStock");
     const readerCard = document.getElementById("readerCard");
     const cameraInfo = document.getElementById("cameraInfo");
+    const debugInfo = document.getElementById("debugInfo");
 
     const btnStart = document.getElementById("btnStart");
-    const btnSwitch = document.getElementById("btnSwitch");
     const btnStop = document.getElementById("btnStop");
     const btnSend = document.getElementById("btnSend");
 
@@ -278,8 +288,6 @@
     let html5QrcodeScanner = null;
     let lastCode = "";
     let sessionCount = 0;
-    let availableCameras = [];
-    let currentCameraIndex = 0;
 
     const savedDevice = localStorage.getItem('lastDevice');
     if (savedDevice) deviceEl.value = savedDevice;
@@ -303,6 +311,12 @@
       if (kind === "err") codeHintEl.style.borderColor = "#ff3b30";
     }
 
+    function showDebug(msg) {
+      debugInfo.style.display = "block";
+      debugInfo.textContent = msg;
+      console.log("DEBUG:", msg);
+    }
+
     function onScanSuccess(decodedText, decodedResult) {
       if (decodedText && decodedText !== lastCode) {
         lastCode = decodedText;
@@ -318,90 +332,33 @@
       // Ignorar errores normales de escaneo
     }
 
-    function selectBestCamera(cameras) {
-      // Prioridades para seleccionar cámara trasera
-      const priorities = [
-        'back',
-        'rear', 
-        'environment',
-        'trasera',
-        'posterior',
-        'main',
-        'camera2',
-        'camera 2'
-      ];
-
-      // Buscar por etiquetas de prioridad
-      for (let priority of priorities) {
-        const found = cameras.find(cam => 
-          cam.label.toLowerCase().includes(priority)
-        );
-        if (found) return found;
-      }
-
-      // Si hay más de una cámara, usar la última (generalmente es la trasera)
-      if (cameras.length > 1) {
-        return cameras[cameras.length - 1];
-      }
-
-      // Si no, usar la primera disponible
-      return cameras[0];
-    }
-
-    async function startScanner(cameraIndex = null) {
+    async function startScanner() {
       try {
         btnStart.disabled = true;
         btnStart.textContent = "⏳ Iniciando...";
-        setStatus("Solicitando acceso a cámaras...");
+        setStatus("Solicitando acceso a cámara trasera...");
 
         readerCard.style.display = "block";
 
-        // Si ya hay un escáner activo, detenerlo primero
-        if (html5QrcodeScanner) {
-          await html5QrcodeScanner.stop();
-        }
-
         html5QrcodeScanner = new Html5Qrcode("reader");
 
-        // Obtener todas las cámaras
-        availableCameras = await Html5Qrcode.getCameras();
-        
-        if (!availableCameras || availableCameras.length === 0) {
-          throw new Error("No se detectaron cámaras");
-        }
+        // Listar cámaras disponibles (para debug)
+        const cameras = await Html5Qrcode.getCameras();
+        console.log("Cámaras detectadas:", cameras);
+        showDebug(`${cameras.length} cámara(s): ${cameras.map(c => c.label).join(", ")}`);
 
-        console.log("Cámaras disponibles:", availableCameras.map(c => c.label));
-
-        // Seleccionar cámara
-        let selectedCamera;
-        if (cameraIndex !== null && availableCameras[cameraIndex]) {
-          selectedCamera = availableCameras[cameraIndex];
-          currentCameraIndex = cameraIndex;
-        } else {
-          selectedCamera = selectBestCamera(availableCameras);
-          currentCameraIndex = availableCameras.indexOf(selectedCamera);
-        }
-
-        console.log("Cámara seleccionada:", selectedCamera.label);
-
-        // Mostrar info de cámara
-        cameraInfo.style.display = "block";
-        cameraInfo.textContent = `📹 Usando: ${selectedCamera.label}`;
-
-        // Configuración OPTIMIZADA para códigos de barras
+        // MÉTODO 1: Usar facingMode "environment" (cámara trasera)
+        // Esto es más directo y funciona mejor en móviles
         const config = {
           fps: 10,
           qrbox: function(viewfinderWidth, viewfinderHeight) {
-            // Área de escaneo: ancho más grande, altura pequeña (forma de código de barras)
             let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            let qrboxSize = {
+            return {
               width: Math.floor(minEdge * 0.85),
               height: Math.floor(minEdge * 0.3)
             };
-            return qrboxSize;
           },
           aspectRatio: 1.333333,
-          // SOLO códigos de barras (sin QR)
           formatsToSupport: [
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
@@ -410,55 +367,62 @@
             Html5QrcodeSupportedFormats.CODE_93,
             Html5QrcodeSupportedFormats.UPC_A,
             Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.ITF
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.CODABAR
           ],
-          // Ajustes avanzados
           experimentalFeatures: {
             useBarCodeDetectorIfSupported: true
           }
         };
 
-        await html5QrcodeScanner.start(
-          selectedCamera.id,
-          config,
-          onScanSuccess,
-          onScanError
-        );
+        // Intentar con facingMode: environment primero
+        try {
+          await html5QrcodeScanner.start(
+            { facingMode: "environment" }, // Esto fuerza cámara trasera
+            config,
+            onScanSuccess,
+            onScanError
+          );
+          
+          cameraInfo.style.display = "block";
+          cameraInfo.textContent = "📹 Usando cámara trasera";
+          
+        } catch (envError) {
+          console.warn("facingMode 'environment' falló, intentando con ID de cámara:", envError);
+          
+          // MÉTODO 2: Si falla, buscar cámara trasera por ID
+          const backCamera = cameras.find(cam => 
+            cam.label.toLowerCase().includes('back') ||
+            cam.label.toLowerCase().includes('rear') ||
+            cam.label.toLowerCase().includes('environment') ||
+            cam.label.toLowerCase().includes('trasera')
+          ) || cameras[cameras.length - 1]; // Usar última si no encuentra
+          
+          await html5QrcodeScanner.start(
+            backCamera.id,
+            config,
+            onScanSuccess,
+            onScanError
+          );
+          
+          cameraInfo.style.display = "block";
+          cameraInfo.textContent = `📹 Usando: ${backCamera.label}`;
+        }
 
         btnStart.style.display = "none";
         btnStop.style.display = "block";
         btnStop.disabled = false;
-        
-        // Mostrar botón de cambiar cámara solo si hay más de una
-        if (availableCameras.length > 1) {
-          btnSwitch.style.display = "block";
-          btnSwitch.disabled = false;
-        }
-        
         setStatus("📷 Cámara activa. Acerca el código de barras");
 
       } catch (err) {
-        console.error("Error:", err);
+        console.error("Error completo:", err);
         btnStart.disabled = false;
-        btnStart.textContent = "📷 Iniciar Cámara Trasera";
+        btnStart.textContent = "📷 Iniciar Escáner";
         readerCard.style.display = "none";
         cameraInfo.style.display = "none";
+        showDebug("Error: " + err.message);
         setStatus("❌ Error: " + (err?.message || err), "err");
       }
-    }
-
-    async function switchCamera() {
-      if (availableCameras.length <= 1) return;
-      
-      btnSwitch.disabled = true;
-      btnSwitch.textContent = "⏳ Cambiando...";
-      
-      // Cambiar a la siguiente cámara
-      currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
-      
-      await startScanner(currentCameraIndex);
-      
-      btnSwitch.textContent = "🔄 Cambiar Cámara";
     }
 
     async function stopScanner() {
@@ -470,11 +434,11 @@
         
         readerCard.style.display = "none";
         cameraInfo.style.display = "none";
+        debugInfo.style.display = "none";
         btnStart.style.display = "block";
         btnStart.disabled = false;
-        btnStart.textContent = "📷 Iniciar Cámara Trasera";
+        btnStart.textContent = "📷 Iniciar Escáner";
         btnStop.style.display = "none";
-        btnSwitch.style.display = "none";
         setStatus("Cámara detenida");
       } catch (err) {
         setStatus("Error al detener: " + (err?.message || err), "err");
@@ -588,8 +552,7 @@
       }
     }
 
-    btnStart.addEventListener("click", () => startScanner());
-    btnSwitch.addEventListener("click", switchCamera);
+    btnStart.addEventListener("click", startScanner);
     btnStop.addEventListener("click", stopScanner);
     btnSend.addEventListener("click", sendLastCode);
 
