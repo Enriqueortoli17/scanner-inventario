@@ -3,255 +3,288 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Escáner Inventario Pro</title>
+  <title>Escáner Pro HD</title>
   <style>
+    :root { --primary: #007aff; --bg: #f2f2f7; --card: #ffffff; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: -apple-system, system-ui, sans-serif;
-      margin: 0; padding: 12px; background: #f4f7f9; color: #333;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0; padding: 16px; background: var(--bg); color: #1c1c1e;
     }
-    .card {
-      background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    }
-    h1 { font-size: 22px; text-align: center; color: #007aff; margin: 0 0 20px; }
     
-    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-    .stat-box {
-      background: linear-gradient(135deg, #007aff, #0056b3);
-      color: white; padding: 15px; border-radius: 12px; text-align: center;
-    }
-    .stat-value { font-size: 28px; font-weight: 800; }
-    .stat-label { font-size: 11px; opacity: 0.9; text-transform: uppercase; }
-
-    label { display: block; font-size: 13px; font-weight: 600; color: #666; margin: 10px 0 5px; }
+    /* UI Elements */
+    .card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    h1 { font-size: 24px; margin: 0 0 20px; text-align: center; color: var(--primary); letter-spacing: -0.5px; }
+    
+    label { display: block; font-size: 13px; font-weight: 600; color: #8e8e93; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
     input {
-      width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px;
-      font-size: 16px; outline: none; transition: border-color 0.2s;
+      width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #d1d1d6;
+      font-size: 17px; background: #fff; -webkit-appearance: none;
     }
-    input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
+    input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
 
+    /* Botones */
+    .btn-group { display: flex; gap: 10px; margin-top: 10px; }
     button {
-      width: 100%; padding: 16px; border-radius: 12px; border: none;
-      font-size: 17px; font-weight: 600; cursor: pointer; margin-top: 10px;
-      transition: transform 0.1s;
+      flex: 1; padding: 16px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: transform 0.1s;
     }
-    button:active { transform: scale(0.98); }
-    .btn-main { background: #007aff; color: white; }
-    .btn-secondary { background: #f0f2f5; color: #007aff; border: 1px solid #007aff; }
+    button:active { transform: scale(0.96); }
+    .btn-primary { background: var(--primary); color: white; }
     .btn-danger { background: #ff3b30; color: white; }
-    button:disabled { background: #ccc; opacity: 0.6; }
+    .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+    
+    /* Cámara y Escáner */
+    #reader-wrapper {
+      position: relative; border-radius: 16px; overflow: hidden; background: #000;
+      display: none; margin-bottom: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    #reader { width: 100%; height: 100%; object-fit: cover; }
+    
+    /* Guía Visual (Cuadro Rojo) */
+    .scan-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      background: 
+        linear-gradient(to right, rgba(0,0,0,0.6) 10%, transparent 10%, transparent 90%, rgba(0,0,0,0.6) 90%),
+        linear-gradient(to bottom, rgba(0,0,0,0.6) 10%, transparent 10%, transparent 90%, rgba(0,0,0,0.6) 90%);
+      z-index: 10;
+    }
+    .scan-guide {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 80%; height: 150px; border: 2px solid rgba(255, 0, 0, 0.7);
+      border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    }
+    .scan-laser {
+      width: 100%; height: 2px; background: red; position: absolute; top: 50%;
+      box-shadow: 0 0 10px red; animation: scan-anim 2s infinite ease-in-out;
+    }
+    @keyframes scan-anim { 0%, 100% { top: 10%; opacity: 0; } 50% { top: 90%; opacity: 1; } }
 
-    #reader-container { 
-      position: relative; border-radius: 16px; overflow: hidden; 
-      background: #000; display: none; margin: 15px 0;
+    /* Estado */
+    #feedback {
+      text-align: center; font-weight: 600; padding: 10px; border-radius: 8px;
+      margin-top: 10px; display: none;
     }
-    #reader { width: 100%; }
-    .scanner-laser {
-      position: absolute; top: 50%; left: 10%; right: 10%; height: 2px;
-      background: rgba(255, 0, 0, 0.7); box-shadow: 0 0 10px red;
-      animation: scan 2s infinite ease-in-out; z-index: 10;
-    }
-    @keyframes scan { 0%, 100% { transform: translateY(-45px); } 50% { transform: translateY(45px); } }
-
-    .code-display {
-      background: #f8f9fa; border: 2px dashed #007aff; border-radius: 10px;
-      padding: 15px; margin: 15px 0; text-align: center;
-    }
-    .code-value { font-family: monospace; font-size: 22px; font-weight: bold; color: #007aff; }
-    .status-msg { text-align: center; font-size: 14px; padding: 10px; }
-    .ok { color: #28a745; font-weight: 600; }
-    .err { color: #dc3545; font-weight: 600; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h1>📦 Escáner Refaccionaria</h1>
-    <div class="stats">
-      <div class="stat-box">
-        <div class="stat-value" id="sessionCount">0</div>
-        <div class="stat-label">Escaneos</div>
+    <h1>📦 Inventario Pro HD</h1>
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+      <div style="flex: 1; text-align: center; background: #e5f1ff; padding: 10px; border-radius: 10px;">
+        <div style="font-size: 24px; font-weight: bold; color: #007aff;" id="sessionCount">0</div>
+        <div style="font-size: 10px; text-transform: uppercase;">Escaneos</div>
       </div>
-      <div class="stat-box">
-        <div class="stat-value" id="lastStock">—</div>
-        <div class="stat-label">Último Stock</div>
+      <div style="flex: 1; text-align: center; background: #e5f1ff; padding: 10px; border-radius: 10px;">
+        <div style="font-size: 24px; font-weight: bold; color: #007aff;" id="lastStock">-</div>
+        <div style="font-size: 10px; text-transform: uppercase;">Stock</div>
       </div>
     </div>
-    
-    <label>📱 Ubicación / Dispositivo</label>
-    <input id="device" type="text" placeholder="Ej. Mostrador 1" />
-    
-    <label>🔢 Cantidad</label>
-    <input id="qty" type="number" value="1" min="1" />
+
+    <label>Ubicación</label>
+    <input type="text" id="device" placeholder="Ej. Estante A1" />
   </div>
 
   <div class="card">
-    <button id="btnStart" class="btn-main">📷 Abrir Cámara (QR/Barras)</button>
+    <button id="btnStart" class="btn-primary">📷 Iniciar Escáner HD</button>
     
-    <div id="reader-container">
+    <div id="reader-wrapper">
       <div id="reader"></div>
-      <div class="scanner-laser"></div>
-      <button id="btnStop" class="btn-danger" style="margin: 10px; width: calc(100% - 20px);">Cerrar Cámara</button>
-      <button id="btnTorch" class="btn-secondary" style="margin: 0 10px 10px; width: calc(100% - 20px); display:none;">🔦 Encender Luz</button>
+      <div class="scan-guide"><div class="scan-laser"></div></div>
+      <button id="btnStop" class="btn-danger" style="position: absolute; bottom: 20px; left: 20px; right: 20px; z-index: 20;">Detener Cámara</button>
     </div>
 
-    <div class="code-display">
-      <div style="font-size: 11px; color: #666; margin-bottom: 5px;">CÓDIGO DETECTADO</div>
-      <div class="code-value" id="lastCode">---</div>
+    <div id="feedback"></div>
+
+    <div id="dataForm">
+      <label>Código Detectado</label>
+      <input type="text" id="barcode" placeholder="Escanea o escribe..." style="font-family: monospace; font-weight: bold; color: #007aff;" />
+      
+      <div style="display: flex; gap: 10px;">
+        <div style="flex: 1;">
+          <label>Cantidad</label>
+          <input type="number" id="qty" value="1" min="1" />
+        </div>
+        <div style="flex: 2;">
+          <label>Marca</label>
+          <input type="text" id="brand" placeholder="Marca" />
+        </div>
+      </div>
+
+      <label>Descripción</label>
+      <input type="text" id="desc" placeholder="Nombre del producto" />
+
+      <label>Modelo / Nota</label>
+      <input type="text" id="model" placeholder="Detalles extra..." />
+
+      <button id="btnSend" class="btn-primary" style="margin-top: 20px;" disabled>✅ Enviar Registro</button>
     </div>
-
-    <div id="status" class="status-msg">Listo para escanear</div>
-
-    <label>🏷️ Marca</label>
-    <input id="brand" type="text" placeholder="Ej. NGK" />
-    
-    <label>📝 Descripción (Obligatoria para nuevos)</label>
-    <input id="desc" type="text" placeholder="Ej. Bujía de Iridium" />
-    
-    <label>🚗 Modelo / Motor</label>
-    <input id="model" type="text" placeholder="Ej. Nissan NP300" />
-
-    <label>💬 Nota</label>
-    <input id="note" type="text" placeholder="Opcional..." />
-
-    <button id="btnSend" class="btn-main" style="margin-top:20px; background: #34c759;" disabled>✅ Enviar a Inventario</button>
-    <button id="btnManual" class="btn-secondary">⌨️ Código Manual</button>
   </div>
-
-  <audio id="beepSound" src="https://assets.mixkit.co/active_storage/sfx/766/766-preview.mp3"></audio>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
-    const CONFIG = {
+    // ==========================================
+    // CONFIGURACIÓN (Actualiza tu URL aquí)
+    // ==========================================
+    const APP_CONFIG = {
       url: "https://script.google.com/macros/s/AKfycbzuewP1k1PXI44KLdlkAm25zS4QqHgkfzfRbbQV5G6xl6UZIOSfktjaPIEv0yx0otZc/exec",
       token: "refaccionaria_2025_token_secreto"
     };
 
     let html5QrCode;
-    let currentCode = "";
-    let isTorchOn = false;
-
     const btnStart = document.getElementById('btnStart');
     const btnStop = document.getElementById('btnStop');
     const btnSend = document.getElementById('btnSend');
-    const readerCont = document.getElementById('reader-container');
-    const statusEl = document.getElementById('status');
-    const lastCodeEl = document.getElementById('lastCode');
+    const feedback = document.getElementById('feedback');
+    
+    // Inputs
+    const inputs = {
+      barcode: document.getElementById('barcode'),
+      qty: document.getElementById('qty'),
+      brand: document.getElementById('brand'),
+      desc: document.getElementById('desc'),
+      model: document.getElementById('model'),
+      device: document.getElementById('device')
+    };
 
-    function onScanSuccess(decodedText) {
-      if (decodedText === currentCode) return;
-      
-      currentCode = decodedText;
-      lastCodeEl.textContent = currentCode;
-      document.getElementById('beepSound').play().catch(()=>{});
-      
-      if (navigator.vibrate) navigator.vibrate(100);
-      
-      statusEl.className = "status-msg ok";
-      statusEl.textContent = "✅ Código detectado. Verifica y envía.";
-      btnSend.disabled = false;
-      stopCamera();
-    }
-
-    async function startCamera() {
-      readerCont.style.display = 'block';
+    // 1. INICIAR CÁMARA CON CONFIGURACIÓN "A PRUEBA DE BALAS"
+    btnStart.addEventListener('click', async () => {
+      document.getElementById('reader-wrapper').style.display = 'block';
       btnStart.style.display = 'none';
-      statusEl.textContent = "Iniciando cámara...";
-      
+      showMsg("Iniciando cámara HD...", "normal");
+
       html5QrCode = new Html5Qrcode("reader");
-      
-      const config = { 
-        fps: 30, 
-        qrbox: { width: 300, height: 200 },
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true } 
+
+      const config = {
+        fps: 30, // Mayor velocidad de cuadros para evitar borrosidad por movimiento
+        qrbox: { width: 250, height: 150 }, // Área de escaneo
+        aspectRatio: 1.0,
+        // IMPORTANTE: Definimos todos los formatos posibles
+        formatsToSupport: [ 
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E 
+        ]
       };
 
       try {
-        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-        
-        // CORRECCIÓN ERROR getRunningTrack:
-        setTimeout(() => {
-            try {
-                const track = html5QrCode.getRunningTrack();
-                if (track && track.getCapabilities().torch) {
-                    const torchBtn = document.getElementById('btnTorch');
-                    torchBtn.style.display = 'block';
-                    torchBtn.onclick = async () => {
-                        isTorchOn = !isTorchOn;
-                        await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
-                        torchBtn.textContent = isTorchOn ? "🚫 Apagar Luz" : "🔦 Encender Luz";
-                    };
-                }
-            } catch(e) { console.log("Linterna no soportada"); }
-        }, 1000);
-
+        // SOLICITAMOS CÁMARA TRASERA CON ALTA RESOLUCIÓN
+        await html5QrCode.start(
+          { 
+            facingMode: "environment",
+            focusMode: "continuous", // Intenta enfocar siempre
+            width: { min: 1024, ideal: 1280, max: 1920 }, // Forzamos HD
+            height: { min: 768, ideal: 720, max: 1080 }
+          },
+          config,
+          onScanSuccess,
+          (error) => { /* Errores de frame ignorados */ }
+        );
+        showMsg("Cámara activa. Apunta al código.", "normal");
       } catch (err) {
-        statusEl.textContent = "Error: Cámara no disponible o denegada.";
-        statusEl.className = "status-msg err";
+        console.error(err);
+        showMsg("Error: No se pudo abrir la cámara. Revisa permisos.", "error");
         stopCamera();
       }
+    });
+
+    // 2. AL DETECTAR CÓDIGO
+    function onScanSuccess(decodedText, decodedResult) {
+      // Evitar lecturas duplicadas inmediatas
+      if (inputs.barcode.value === decodedText) return;
+
+      inputs.barcode.value = decodedText;
+      
+      // Feedback auditivo y vibración
+      if (navigator.vibrate) navigator.vibrate(200);
+      let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(e => console.log("Audio bloqueado"));
+
+      showMsg("¡Código detectado!", "success");
+      btnSend.disabled = false;
+      
+      // Opcional: Detener cámara al leer para ahorrar batería
+      stopCamera(); 
     }
 
+    // 3. DETENER CÁMARA
+    btnStop.addEventListener('click', stopCamera);
+    
     async function stopCamera() {
       if (html5QrCode && html5QrCode.isScanning) {
         await html5QrCode.stop();
       }
-      readerCont.style.display = 'none';
+      document.getElementById('reader-wrapper').style.display = 'none';
       btnStart.style.display = 'block';
     }
 
-    async function sendData() {
-      const btnOriginalText = btnSend.textContent;
+    // 4. ENVIAR DATOS
+    btnSend.addEventListener('click', async () => {
+      if (!inputs.barcode.value) return alert("Falta el código");
+
+      const originalText = btnSend.textContent;
+      btnSend.textContent = "Enviando...";
       btnSend.disabled = true;
-      btnSend.textContent = "⏳ Enviando...";
-      
+
       const payload = {
-        token: CONFIG.token,
-        barcode: currentCode,
-        qty: parseInt(document.getElementById('qty').value) || 1,
-        device: document.getElementById('device').value || "Móvil",
-        brand: document.getElementById('brand').value || "",
-        desc: document.getElementById('desc').value || "",
-        model: document.getElementById('model').value || "",
-        note: document.getElementById('note').value || ""
+        token: APP_CONFIG.token,
+        barcode: inputs.barcode.value,
+        qty: inputs.qty.value,
+        brand: inputs.brand.value,
+        desc: inputs.desc.value,
+        model: inputs.model.value,
+        device: inputs.device.value || "Sin Ubicación"
       };
 
       try {
-        // Usamos text/plain para evitar problemas de CORS con Apps Script
-        await fetch(CONFIG.url, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain' },
+        await fetch(APP_CONFIG.url, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
           body: JSON.stringify(payload)
         });
 
-        statusEl.textContent = "✅ ¡Enviado correctamente!";
-        statusEl.className = "status-msg ok";
+        // Éxito simulado (por no-cors)
+        showMsg("✅ Guardado en Inventario", "success");
         
-        // Reset UI
-        document.getElementById('sessionCount').textContent = parseInt(document.getElementById('sessionCount').textContent) + 1;
-        currentCode = "";
-        lastCodeEl.textContent = "---";
-        document.getElementById('note').value = "";
+        // Limpiar para el siguiente
+        inputs.barcode.value = "";
+        inputs.qty.value = "1";
+        inputs.desc.value = ""; // Opcional: limpiar descripción
+        inputs.brand.value = "";
+        inputs.model.value = "";
         
-      } catch (e) {
-        statusEl.textContent = "❌ Error de conexión.";
-        statusEl.className = "status-msg err";
+        // Actualizar contador visual
+        let count = document.getElementById('sessionCount');
+        count.textContent = parseInt(count.textContent) + 1;
+
+      } catch (err) {
+        showMsg("Error de conexión", "error");
       } finally {
-        btnSend.disabled = true;
-        btnSend.textContent = btnOriginalText;
+        btnSend.textContent = originalText;
+        // Esperamos un poco antes de dejar enviar otro para evitar doble click
+        setTimeout(() => { if(inputs.barcode.value) btnSend.disabled = false; }, 1000);
+      }
+    });
+
+    // Auxiliar mensajes
+    function showMsg(text, type) {
+      feedback.style.display = 'block';
+      feedback.textContent = text;
+      feedback.className = type;
+      if (type === 'success') {
+        setTimeout(() => feedback.style.display = 'none', 3000);
       }
     }
-
-    btnStart.onclick = startCamera;
-    btnStop.onclick = stopCamera;
-    btnSend.onclick = sendData;
-    btnManual.onclick = () => {
-      const code = prompt("Ingresa el código:");
-      if (code) onScanSuccess(code);
-    };
   </script>
 </body>
 </html>
-
