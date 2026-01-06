@@ -62,6 +62,9 @@
       color: #007aff;
       border: 2px solid #007aff;
     }
+    button.warning {
+      background: #ff9500;
+    }
     input { 
       width: 100%;
       padding: 14px;
@@ -169,6 +172,7 @@
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      position: relative;
     }
     #reader video {
       border-radius: 12px;
@@ -183,14 +187,24 @@
       text-align: center;
       font-weight: 600;
     }
-    .debug-info {
+    .scanning-indicator {
       background: #fff3e0;
       padding: 8px;
-      border-radius: 6px;
-      font-size: 11px;
+      border-radius: 8px;
+      font-size: 12px;
       color: #e65100;
-      margin-top: 6px;
-      font-family: monospace;
+      margin-top: 8px;
+      text-align: center;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .manual-input-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed #ddd;
     }
   </style>
 </head>
@@ -233,12 +247,24 @@
   <div class="card">
     <button id="btnStart">📷 Iniciar Escáner</button>
     <button id="btnStop" class="danger" style="display:none;">⏹️ Detener Cámara</button>
-    <button id="btnSend" disabled>✅ Enviar a Inventario</button>
+    
+    <!-- Botón para entrada manual -->
+    <button id="btnManual" class="secondary">⌨️ Escribir Código Manualmente</button>
 
     <div class="code-display">
       <div class="label">CÓDIGO DETECTADO</div>
       <div id="lastCode">—</div>
     </div>
+
+    <!-- Sección de entrada manual (oculta por defecto) -->
+    <div id="manualSection" class="manual-input-section" style="display:none;">
+      <label>✏️ Escribir código de barras</label>
+      <input id="manualCode" type="text" placeholder="Escribe o pega el código aquí" />
+      <button id="btnConfirmManual" class="secondary">✓ Usar Este Código</button>
+      <button id="btnCancelManual" class="warning">✕ Cancelar</button>
+    </div>
+
+    <button id="btnSend" disabled>✅ Enviar a Inventario</button>
 
     <div class="hint-container">
       <span id="codeHint" class="pill" style="display:none;"></span>
@@ -252,10 +278,13 @@
   <div class="card" id="readerCard" style="display:none;">
     <div id="reader"></div>
     <div id="cameraInfo" class="camera-info" style="display:none;"></div>
-    <div id="debugInfo" class="debug-info" style="display:none;"></div>
+    <div id="scanningIndicator" class="scanning-indicator">
+      🔍 Buscando código... mantén quieto el teléfono
+    </div>
     <p class="muted" style="margin-top: 12px; text-align: center;">
-      💡 <strong>Acerca el código a 10-20 cm</strong><br>
-      Mantén buena iluminación y el código plano
+      <strong>📏 Distancia ideal: 10-15 cm</strong><br>
+      💡 Buena luz | 📱 Teléfono quieto | 📄 Código plano<br>
+      <small>Si no detecta: usa "Escribir Código Manualmente"</small>
     </p>
   </div>
 
@@ -272,11 +301,17 @@
     const lastStockEl = document.getElementById("lastStock");
     const readerCard = document.getElementById("readerCard");
     const cameraInfo = document.getElementById("cameraInfo");
-    const debugInfo = document.getElementById("debugInfo");
+    const scanningIndicator = document.getElementById("scanningIndicator");
 
     const btnStart = document.getElementById("btnStart");
     const btnStop = document.getElementById("btnStop");
     const btnSend = document.getElementById("btnSend");
+    const btnManual = document.getElementById("btnManual");
+    const btnConfirmManual = document.getElementById("btnConfirmManual");
+    const btnCancelManual = document.getElementById("btnCancelManual");
+
+    const manualSection = document.getElementById("manualSection");
+    const manualCodeInput = document.getElementById("manualCode");
 
     const qtyEl = document.getElementById("qty");
     const noteEl = document.getElementById("note");
@@ -311,25 +346,23 @@
       if (kind === "err") codeHintEl.style.borderColor = "#ff3b30";
     }
 
-    function showDebug(msg) {
-      debugInfo.style.display = "block";
-      debugInfo.textContent = msg;
-      console.log("DEBUG:", msg);
-    }
-
     function onScanSuccess(decodedText, decodedResult) {
+      console.log("Código detectado:", decodedText);
       if (decodedText && decodedText !== lastCode) {
         lastCode = decodedText;
         lastCodeEl.textContent = lastCode;
         btnSend.disabled = false;
         showHint("✓ Listo para enviar", "ok");
         setStatus("✓ Código leído. Verifica datos y envía", "ok");
+        scanningIndicator.textContent = "✅ ¡Código detectado!";
+        scanningIndicator.style.background = "#e8f5e9";
+        scanningIndicator.style.color = "#2e7d32";
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       }
     }
 
     function onScanError(errorMessage) {
-      // Ignorar errores normales de escaneo
+      // Ignorar errores (son normales mientras escanea)
     }
 
     async function startScanner() {
@@ -339,27 +372,30 @@
         setStatus("Solicitando acceso a cámara trasera...");
 
         readerCard.style.display = "block";
+        scanningIndicator.style.display = "block";
+        scanningIndicator.style.background = "#fff3e0";
+        scanningIndicator.style.color = "#e65100";
+        scanningIndicator.textContent = "🔍 Buscando código... mantén quieto el teléfono";
 
         html5QrcodeScanner = new Html5Qrcode("reader");
 
-        // Listar cámaras disponibles (para debug)
         const cameras = await Html5Qrcode.getCameras();
-        console.log("Cámaras detectadas:", cameras);
-        showDebug(`${cameras.length} cámara(s): ${cameras.map(c => c.label).join(", ")}`);
+        console.log("Cámaras:", cameras.map(c => c.label));
 
-        // MÉTODO 1: Usar facingMode "environment" (cámara trasera)
-        // Esto es más directo y funciona mejor en móviles
+        // Configuración MEJORADA para mejor detección
         const config = {
-          fps: 10,
+          fps: 20, // ⬆️ Aumentado de 10 a 20 (más intentos por segundo)
           qrbox: function(viewfinderWidth, viewfinderHeight) {
-            let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            // Área de escaneo MÁS GRANDE y flexible
             return {
-              width: Math.floor(minEdge * 0.85),
-              height: Math.floor(minEdge * 0.3)
+              width: Math.min(viewfinderWidth * 0.9, 400),
+              height: Math.min(viewfinderHeight * 0.4, 200)
             };
           },
-          aspectRatio: 1.333333,
+          aspectRatio: 1.777778,
+          // TODOS los formatos de códigos de barras
           formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.CODE_128,
@@ -367,36 +403,45 @@
             Html5QrcodeSupportedFormats.CODE_93,
             Html5QrcodeSupportedFormats.UPC_A,
             Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.UPC_EAN_EXTENSION,
             Html5QrcodeSupportedFormats.ITF,
-            Html5QrcodeSupportedFormats.CODABAR
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.RSS_14,
+            Html5QrcodeSupportedFormats.DATA_MATRIX,
+            Html5QrcodeSupportedFormats.AZTEC,
+            Html5QrcodeSupportedFormats.PDF_417
           ],
+          // Habilitar detector de códigos de barras nativo
           experimentalFeatures: {
             useBarCodeDetectorIfSupported: true
+          },
+          // Configuración de video para mejor calidad
+          videoConstraints: {
+            facingMode: "environment",
+            aspectRatio: 1.777778,
+            focusMode: "continuous" // Enfoque continuo
           }
         };
 
-        // Intentar con facingMode: environment primero
         try {
           await html5QrcodeScanner.start(
-            { facingMode: "environment" }, // Esto fuerza cámara trasera
+            { facingMode: "environment" },
             config,
             onScanSuccess,
             onScanError
           );
           
           cameraInfo.style.display = "block";
-          cameraInfo.textContent = "📹 Usando cámara trasera";
+          cameraInfo.textContent = "📹 Cámara trasera activa";
           
         } catch (envError) {
-          console.warn("facingMode 'environment' falló, intentando con ID de cámara:", envError);
+          console.warn("Usando fallback de cámara:", envError);
           
-          // MÉTODO 2: Si falla, buscar cámara trasera por ID
           const backCamera = cameras.find(cam => 
             cam.label.toLowerCase().includes('back') ||
             cam.label.toLowerCase().includes('rear') ||
-            cam.label.toLowerCase().includes('environment') ||
-            cam.label.toLowerCase().includes('trasera')
-          ) || cameras[cameras.length - 1]; // Usar última si no encuentra
+            cam.label.toLowerCase().includes('environment')
+          ) || cameras[cameras.length - 1];
           
           await html5QrcodeScanner.start(
             backCamera.id,
@@ -406,21 +451,20 @@
           );
           
           cameraInfo.style.display = "block";
-          cameraInfo.textContent = `📹 Usando: ${backCamera.label}`;
+          cameraInfo.textContent = `📹 ${backCamera.label}`;
         }
 
         btnStart.style.display = "none";
         btnStop.style.display = "block";
         btnStop.disabled = false;
-        setStatus("📷 Cámara activa. Acerca el código de barras");
+        btnManual.style.display = "none";
+        setStatus("📷 Escanea el código de barras");
 
       } catch (err) {
-        console.error("Error completo:", err);
+        console.error("Error:", err);
         btnStart.disabled = false;
         btnStart.textContent = "📷 Iniciar Escáner";
         readerCard.style.display = "none";
-        cameraInfo.style.display = "none";
-        showDebug("Error: " + err.message);
         setStatus("❌ Error: " + (err?.message || err), "err");
       }
     }
@@ -434,15 +478,48 @@
         
         readerCard.style.display = "none";
         cameraInfo.style.display = "none";
-        debugInfo.style.display = "none";
+        scanningIndicator.style.display = "none";
         btnStart.style.display = "block";
         btnStart.disabled = false;
         btnStart.textContent = "📷 Iniciar Escáner";
         btnStop.style.display = "none";
+        btnManual.style.display = "block";
         setStatus("Cámara detenida");
       } catch (err) {
         setStatus("Error al detener: " + (err?.message || err), "err");
       }
+    }
+
+    // Funciones de entrada manual
+    function showManualInput() {
+      manualSection.style.display = "block";
+      manualCodeInput.value = "";
+      manualCodeInput.focus();
+      btnManual.style.display = "none";
+      btnStart.style.display = "none";
+    }
+
+    function hideManualInput() {
+      manualSection.style.display = "none";
+      btnManual.style.display = "block";
+      btnStart.style.display = "block";
+    }
+
+    function confirmManualCode() {
+      const code = manualCodeInput.value.trim();
+      if (!code) {
+        setStatus("❌ Escribe un código", "err");
+        return;
+      }
+      
+      lastCode = code;
+      lastCodeEl.textContent = lastCode;
+      btnSend.disabled = false;
+      showHint("✓ Código ingresado manualmente", "ok");
+      setStatus("✓ Código listo. Verifica datos y envía", "ok");
+      hideManualInput();
+      
+      if (navigator.vibrate) navigator.vibrate(50);
     }
 
     function validateBeforeSend() {
@@ -530,6 +607,13 @@
 
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
+        // Resetear indicador de escaneo si está visible
+        if (scanningIndicator.style.display !== "none") {
+          scanningIndicator.textContent = "🔍 Buscando código... mantén quieto el teléfono";
+          scanningIndicator.style.background = "#fff3e0";
+          scanningIndicator.style.color = "#e65100";
+        }
+
         lastCode = "";
         lastCodeEl.textContent = "—";
         noteEl.value = "";
@@ -552,9 +636,18 @@
       }
     }
 
+    // Event listeners
     btnStart.addEventListener("click", startScanner);
     btnStop.addEventListener("click", stopScanner);
     btnSend.addEventListener("click", sendLastCode);
+    btnManual.addEventListener("click", showManualInput);
+    btnConfirmManual.addEventListener("click", confirmManualCode);
+    btnCancelManual.addEventListener("click", hideManualInput);
+
+    // Enter en input manual
+    manualCodeInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") confirmManualCode();
+    });
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !btnSend.disabled) sendLastCode();
