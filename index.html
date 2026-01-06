@@ -36,9 +36,16 @@
     
     /* Cámara y Escáner */
     #reader-wrapper {
-      position: relative; border-radius: 16px; overflow: hidden; background: #000;
-      display: none; margin-bottom: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      position: relative; 
+      border-radius: 16px; 
+      overflow: hidden; 
+      background: #000;
+      display: none;      /* Debe estar oculto al principio */
+      margin-bottom: 20px; 
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      min-height: 300px;  /* <--- AGREGA ESTO SI NO LO TIENES */
     }
+    
     #reader { width: 100%; height: 100%; object-fit: cover; }
     
     /* Guía Visual (Cuadro Rojo) */
@@ -152,58 +159,57 @@
       device: document.getElementById('device')
     };
 
-    // 1. INICIAR CÁMARA (VERSIÓN FLEXIBLE)
+    // 1. INICIAR CÁMARA (VERSIÓN ROBUSTA)
     btnStart.addEventListener('click', async () => {
-      document.getElementById('reader-wrapper').style.display = 'block';
+      // A. Preparamos el UI primero
+      const readerDiv = document.getElementById('reader-wrapper');
+      readerDiv.style.display = 'block'; 
       btnStart.style.display = 'none';
       showMsg("Iniciando cámara...", "normal");
 
+      // B. Pequeña pausa para asegurar que el DIV ya existe visualmente
+      await new Promise(r => setTimeout(r, 300));
+
+      // C. Limpieza por si quedó algo colgado
+      if (html5QrCode) {
+        try { await html5QrCode.stop(); } catch(e){}
+        try { html5QrCode.clear(); } catch(e){}
+      }
+      
       html5QrCode = new Html5Qrcode("reader");
 
       const config = {
-        fps: 20, // Bajamos un poco para asegurar compatibilidad
+        fps: 20,
         qrbox: { width: 250, height: 150 },
         aspectRatio: 1.0
       };
 
       try {
-        // INTENTO 1: Configuración Ideal (Cámara trasera, HD)
+        // INTENTO: Configuración Estándar (Cámara trasera)
         await html5QrCode.start(
-          { 
-            facingMode: "environment",
-            width: { ideal: 1280 }, // "Idealmente" HD, pero no obligatorio
-            height: { ideal: 720 } 
-          },
-          config,
-          onScanSuccess,
-          () => {}
+          { facingMode: "environment" }, 
+          config, 
+          onScanSuccess, 
+          (error) => { /* Errores de frame ignorados */ }
         );
         showMsg("Cámara activa.", "normal");
 
       } catch (err) {
-        console.warn("Fallo intento HD, probando modo básico...", err);
+        console.error("Error al iniciar:", err);
         
-        try {
-          // INTENTO 2: Configuración Básica (Cualquier cámara trasera)
-          await html5QrCode.start(
-            { facingMode: "environment" }, 
-            config, 
-            onScanSuccess, 
-            () => {}
-          );
-           showMsg("Cámara activa (Modo Básico).", "normal");
-           
-        } catch (err2) {
-          // Si falla todo, mostramos el error REAL
-          console.error(err2);
-          showMsg("Error crítico: " + err2.name, "error");
-          
-          // Ayuda visual para el usuario según el error
-          if(err2.name == "NotAllowedError") alert("❌ PERMISO DENEGADO: Tienes que darle 'Permitir' al navegador para usar la cámara.");
-          if(err2.name == "NotFoundError") alert("❌ NO HAY CÁMARA: No se detecta ninguna cámara en este dispositivo.");
-          
-          stopCamera();
-        }
+        // D. Manejo correcto del mensaje de error
+        let errorTexto = "Error desconocido";
+        if (typeof err === 'string') errorTexto = err;
+        else if (err.message) errorTexto = err.message;
+        else if (err.name) errorTexto = err.name;
+
+        showMsg("Fallo: " + errorTexto, "error");
+        
+        // Si falla, ocultamos el cuadro negro
+        setTimeout(() => {
+            stopCamera();
+            alert("⚠️ No se pudo abrir la cámara.\n\nRazón: " + errorTexto + "\n\n1. Revisa que estés en HTTPS.\n2. Revisa los permisos del navegador.");
+        }, 500);
       }
     });
 
@@ -298,5 +304,6 @@
   </script>
 </body>
 </html>
+
 
 
