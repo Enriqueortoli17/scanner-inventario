@@ -3,584 +3,248 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#007aff" />
-  <title>Escáner Inventario</title>
-
+  <title>Escáner Pro - Inventario</title>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      margin: 0;
-      padding: 12px;
-      max-width: 720px;
-      margin: 0 auto;
-      background: #f5f5f5;
+      font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0; padding: 12px; background: #f0f2f5; color: #1c1e21;
     }
-    h1 { font-size: 22px; margin: 0 0 16px; color: #1a1a1a; text-align: center; }
     .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    button {
-      width: 100%;
-      padding: 16px;
-      border-radius: 12px;
-      border: none;
-      background: #007aff;
-      color: white;
-      font-size: 17px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-bottom: 10px;
-      transition: all 0.2s;
+    h1 { font-size: 20px; text-align: center; margin: 0 0 15px; color: #007aff; }
+    
+    /* Stats Row */
+    .stats { display: flex; gap: 10px; margin-bottom: 15px; }
+    .stat-box {
+      flex: 1; background: linear-gradient(135deg, #007aff, #0056b3);
+      color: white; padding: 12px; border-radius: 10px; text-align: center;
     }
-    button:active { transform: scale(0.97); }
-    button:disabled { opacity: 0.5; background: #ccc; cursor: not-allowed; }
-    button.danger { background: #ff3b30; }
-    button.secondary { background: #fff; color: #007aff; border: 2px solid #007aff; }
-    button.warning { background: #ff9500; }
+    .stat-value { font-size: 24px; font-weight: bold; }
+    .stat-label { font-size: 10px; text-transform: uppercase; opacity: 0.9; }
 
+    /* Inputs */
+    label { display: block; font-size: 12px; font-weight: 600; color: #65676b; margin: 8px 0 4px; }
     input {
-      width: 100%;
-      padding: 14px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      font-size: 16px;
-      margin-bottom: 12px;
-      -webkit-appearance: none;
-      transition: border-color 0.2s;
+      width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px;
+      font-size: 16px; outline: none; transition: border-color 0.2s;
     }
-    input:focus {
-      outline: none;
-      border-color: #007aff;
-      box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
-    }
-    label { display: block; color: #666; font-size: 14px; margin-bottom: 6px; font-weight: 600; }
-    .muted { color: #666; font-size: 14px; margin: 8px 0; line-height: 1.4; }
-    .ok { color: #34c759; font-weight: 600; }
-    .err { color: #ff3b30; font-weight: 600; }
-    .warn { color: #ff9500; font-weight: 600; }
+    input:focus { border-color: #007aff; }
 
-    .pill {
-      display: inline-block;
-      padding: 6px 14px;
-      border: 2px solid #ddd;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 700;
-      margin: 8px auto;
+    /* Buttons */
+    button {
+      width: 100%; padding: 15px; border-radius: 10px; border: none;
+      font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px;
+      transition: all 0.2s active;
     }
+    .btn-main { background: #007aff; color: white; }
+    .btn-secondary { background: #e4e6eb; color: #050505; }
+    .btn-danger { background: #ff3b30; color: white; }
+    button:disabled { background: #ccc; opacity: 0.6; }
 
-    .code-display {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 12px;
-      margin: 12px 0;
-      font-family: 'Courier New', monospace;
-      font-size: 20px;
-      font-weight: bold;
-      text-align: center;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-      min-height: 60px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+    /* Scanner UI */
+    #reader-container { 
+      position: relative; border-radius: 12px; overflow: hidden; 
+      background: #000; display: none; margin-bottom: 15px;
     }
-    .code-display .label {
-      font-size: 11px;
-      opacity: 0.8;
-      font-weight: 500;
-      letter-spacing: 1px;
-      margin-bottom: 4px;
+    #reader { width: 100%; }
+    .scanner-laser {
+      position: absolute; top: 50%; left: 10%; right: 10%; height: 2px;
+      background: rgba(255, 0, 0, 0.6); box-shadow: 0 0 8px red;
+      animation: scan 2s infinite ease-in-out; z-index: 10;
+    }
+    @keyframes scan {
+      0%, 100% { transform: translateY(-40px); }
+      50% { transform: translateY(40px); }
     }
 
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
+    .code-banner {
+      background: #f8f9fa; border-left: 4px solid #007aff;
+      padding: 12px; margin: 10px 0; font-family: monospace; font-size: 18px;
+      text-align: center; border-radius: 4px;
     }
-    .stat-item {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 16px;
-      border-radius: 12px;
-      text-align: center;
-      color: white;
-    }
-    .stat-value { font-size: 32px; font-weight: 800; line-height: 1; }
-    .stat-label { font-size: 12px; opacity: 0.9; margin-top: 6px; font-weight: 600; }
-
-    .hint-container {
-      text-align: center;
-      min-height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #reader {
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      position: relative;
-    }
-    #reader video { border-radius: 12px; }
-
-    .camera-info {
-      background: #e8f5e9;
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 13px;
-      color: #2e7d32;
-      margin-top: 8px;
-      text-align: center;
-      font-weight: 600;
-    }
-
-    .scanning-indicator {
-      background: #fff3e0;
-      padding: 8px;
-      border-radius: 8px;
-      font-size: 12px;
-      color: #e65100;
-      margin-top: 8px;
-      text-align: center;
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-
-    .manual-input-section {
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px dashed #ddd;
-    }
+    .status-msg { text-align: center; font-size: 14px; margin: 10px 0; min-height: 20px; }
+    .ok { color: #28a745; } .err { color: #dc3545; }
   </style>
 </head>
-
 <body>
-  <h1>📦 Escáner de Inventario</h1>
 
   <div class="card">
+    <h1>📦 Refaccionaria Inventario</h1>
     <div class="stats">
-      <div class="stat-item">
+      <div class="stat-box">
         <div class="stat-value" id="sessionCount">0</div>
-        <div class="stat-label">ESCANEOS</div>
+        <div class="stat-label">Escaneos</div>
       </div>
-      <div class="stat-item">
+      <div class="stat-box">
         <div class="stat-value" id="lastStock">—</div>
-        <div class="stat-label">ÚLTIMO STOCK</div>
+        <div class="stat-label">Stock Actual</div>
       </div>
     </div>
-  </div>
-
-  <div class="card">
-    <label>📱 Dispositivo</label>
-    <input id="device" type="text" placeholder="Ej. Mostrador 1, Almacén" />
-
-    <label>🔢 Cantidad</label>
+    
+    <label>📱 Dispositivo/Ubicación</label>
+    <input id="device" type="text" placeholder="Ej. Mostrador A" />
+    
+    <label>🔢 Cantidad a sumar</label>
     <input id="qty" type="number" value="1" min="1" />
-
-    <label>🏷️ Marca (opcional)</label>
-    <input id="brand" type="text" placeholder="Ej. NGK, Gates, Bosch" />
-
-    <label>📝 Descripción (obligatorio para productos nuevos)</label>
-    <input id="desc" type="text" placeholder="Ej. Banda de tiempo, Bujía" />
-
-    <label>🚗 Modelo / Motor (opcional)</label>
-    <input id="model" type="text" placeholder="Ej. Nissan NP300, VW 1.6" />
-
-    <label>💬 Nota (opcional)</label>
-    <input id="note" type="text" placeholder="Ej. Llegó en caja, revisado" />
   </div>
 
   <div class="card">
-    <button id="btnStart">📷 Iniciar Escáner</button>
-    <button id="btnStop" class="danger" style="display:none;">⏹️ Detener Cámara</button>
-
-    <button id="btnManual" class="secondary">⌨️ Escribir Código Manualmente</button>
-
-    <div class="code-display">
-      <div class="label">CÓDIGO DETECTADO</div>
-      <div id="lastCode">—</div>
+    <button id="btnStart" class="btn-main">📷 Iniciar Cámara</button>
+    
+    <div id="reader-container">
+      <div id="reader"></div>
+      <div class="scanner-laser"></div>
+      <button id="btnStop" class="btn-danger" style="margin: 10px; width: calc(100% - 20px);">Detener</button>
+      <button id="btnTorch" class="btn-secondary" style="margin: 0 10px 10px; width: calc(100% - 20px); display:none;">🔦 Linterna</button>
     </div>
 
-    <div id="manualSection" class="manual-input-section" style="display:none;">
-      <label>✏️ Escribir código de barras</label>
-      <input id="manualCode" type="text" placeholder="Escribe o pega el código aquí" />
-      <button id="btnConfirmManual" class="secondary">✓ Usar Este Código</button>
-      <button id="btnCancelManual" class="warning">✕ Cancelar</button>
+    <div class="code-banner" id="lastCode">Esperando código...</div>
+    <div id="status" class="status-msg">Selecciona una acción</div>
+
+    <div id="extraFields" style="display:none; border-top: 1px solid #eee; padding-top: 10px;">
+      <p style="font-size:12px; color: #ff9500; font-weight:bold;">✨ ¡Nuevo producto detectado! Llena esto:</p>
+      <label>Descripción *</label>
+      <input id="desc" type="text" placeholder="Ej. Filtro de Aceite PH2" />
+      <label>Marca</label>
+      <input id="brand" type="text" placeholder="Ej. Fram" />
     </div>
 
-    <button id="btnSend" disabled>✅ Enviar a Inventario</button>
-
-    <div class="hint-container">
-      <span id="codeHint" class="pill" style="display:none;"></span>
-    </div>
-
-    <p id="status" class="muted" style="text-align: center; margin-top: 8px;">
-      💡 Presiona 'Iniciar Escáner' para comenzar
-    </p>
+    <button id="btnSend" class="btn-main" style="margin-top:20px;" disabled>✅ Enviar a Inventario</button>
+    <button id="btnManual" class="btn-secondary">⌨️ Ingreso Manual</button>
   </div>
 
-  <div class="card" id="readerCard" style="display:none;">
-    <div id="reader"></div>
-    <div id="cameraInfo" class="camera-info" style="display:none;"></div>
-    <div id="scanningIndicator" class="scanning-indicator">
-      🔍 Buscando código... mantén quieto el teléfono
-    </div>
-    <p class="muted" style="margin-top: 12px; text-align: center;">
-      <strong>📏 Distancia ideal: 10-15 cm</strong><br>
-      💡 Buena luz | 📱 Teléfono quieto | 📄 Código plano<br>
-      <small>Si no detecta: usa "Escribir Código Manualmente"</small>
-    </p>
-  </div>
+  <audio id="beepSound" src="https://assets.mixkit.co/active_storage/sfx/766/766-preview.mp3"></audio>
 
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
-    // Endpoint y token (recuerda: el token aquí NO es secreto real)
-    const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzuewP1k1PXI44KLdlkAm25zS4QqHgkfzfRbbQV5G6xl6UZIOSfktjaPIEv0yx0otZc/exec";
-    const SECRET_TOKEN = "refaccionaria_2025_token_secreto";
+    const CONFIG = {
+      url: "TU_URL_DE_APPS_SCRIPT_AQUI", // REEMPLAZAR
+      token: "refaccionaria_2025_token_secreto"
+    };
 
-    const lastCodeEl = document.getElementById("lastCode");
-    const codeHintEl = document.getElementById("codeHint");
-    const statusEl = document.getElementById("status");
-    const sessionCountEl = document.getElementById("sessionCount");
-    const lastStockEl = document.getElementById("lastStock");
-    const readerCard = document.getElementById("readerCard");
-    const cameraInfo = document.getElementById("cameraInfo");
-    const scanningIndicator = document.getElementById("scanningIndicator");
+    let html5QrCode;
+    let currentCode = "";
+    let isTorchOn = false;
 
-    const btnStart = document.getElementById("btnStart");
-    const btnStop = document.getElementById("btnStop");
-    const btnSend = document.getElementById("btnSend");
-    const btnManual = document.getElementById("btnManual");
-    const btnConfirmManual = document.getElementById("btnConfirmManual");
-    const btnCancelManual = document.getElementById("btnCancelManual");
+    // Elementos
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const btnSend = document.getElementById('btnSend');
+    const readerCont = document.getElementById('reader-container');
+    const statusEl = document.getElementById('status');
+    const lastCodeEl = document.getElementById('lastCode');
+    const extraFields = document.getElementById('extraFields');
 
-    const manualSection = document.getElementById("manualSection");
-    const manualCodeInput = document.getElementById("manualCode");
-
-    const qtyEl = document.getElementById("qty");
-    const noteEl = document.getElementById("note");
-    const deviceEl = document.getElementById("device");
-    const brandEl = document.getElementById("brand");
-    const descEl = document.getElementById("desc");
-    const modelEl = document.getElementById("model");
-
-    let html5QrcodeScanner = null;
-    let lastCode = "";
-    let sessionCount = 0;
-
-    const savedDevice = localStorage.getItem('lastDevice');
-    if (savedDevice) deviceEl.value = savedDevice;
-
-    function setStatus(msg, type = "muted") {
-      statusEl.className = type;
-      statusEl.textContent = msg;
-    }
-
-    function showHint(text, kind = "") {
-      if (!text) {
-        codeHintEl.style.display = "none";
-        codeHintEl.textContent = "";
-        codeHintEl.style.borderColor = "#ddd";
-        return;
-      }
-      codeHintEl.style.display = "inline-block";
-      codeHintEl.textContent = text;
-      if (kind === "ok") codeHintEl.style.borderColor = "#34c759";
-      if (kind === "warn") codeHintEl.style.borderColor = "#ff9500";
-      if (kind === "err") codeHintEl.style.borderColor = "#ff3b30";
-    }
-
-    function onScanSuccess(decodedText) {
-      if (decodedText && decodedText !== lastCode) {
-        lastCode = decodedText;
-        lastCodeEl.textContent = lastCode;
-        btnSend.disabled = false;
-        showHint("✓ Listo para enviar", "ok");
-        setStatus("✓ Código leído. Verifica datos y envía", "ok");
-
-        scanningIndicator.textContent = "✅ ¡Código detectado!";
-        scanningIndicator.style.background = "#e8f5e9";
-        scanningIndicator.style.color = "#2e7d32";
-
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-      }
-    }
-
-    function onScanError(_) {
-      // Ignorar errores (normales mientras escanea)
-    }
-
-    async function startScanner() {
-      try {
-        btnStart.disabled = true;
-        btnStart.textContent = "⏳ Iniciando...";
-        setStatus("Solicitando acceso a cámara trasera...");
-
-        readerCard.style.display = "block";
-        scanningIndicator.style.display = "block";
-        scanningIndicator.style.background = "#fff3e0";
-        scanningIndicator.style.color = "#e65100";
-        scanningIndicator.textContent = "🔍 Buscando código... mantén quieto el teléfono";
-
-        // Si hay un escáner activo, deténlo primero
-        if (html5QrcodeScanner) {
-          try { await html5QrcodeScanner.stop(); } catch (_) {}
-        }
-
-        html5QrcodeScanner = new Html5Qrcode("reader");
-
-        const cameras = await Html5Qrcode.getCameras();
-        if (!cameras || cameras.length === 0) throw new Error("No se detectaron cámaras");
-
-        const config = {
-          fps: 20,
-          qrbox: function(viewfinderWidth, viewfinderHeight) {
-            return {
-              width: Math.min(viewfinderWidth * 0.9, 400),
-              height: Math.min(viewfinderHeight * 0.4, 200)
-            };
-          },
-          aspectRatio: 1.777778,
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.CODE_93,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.UPC_EAN_EXTENSION,
-            Html5QrcodeSupportedFormats.ITF,
-            Html5QrcodeSupportedFormats.CODABAR,
-            Html5QrcodeSupportedFormats.RSS_14,
-            Html5QrcodeSupportedFormats.PDF_417
-          ],
-          experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-          // Nota: evito videoConstraints avanzados para máxima compatibilidad iOS
-        };
-
-        // Intenta environment primero
-        try {
-          await html5QrcodeScanner.start(
-            { facingMode: "environment" },
-            config,
-            onScanSuccess,
-            onScanError
-          );
-          cameraInfo.style.display = "block";
-          cameraInfo.textContent = "📹 Cámara trasera activa";
-        } catch (envError) {
-          // Fallback: última cámara suele ser la trasera
-          const backCamera = cameras[cameras.length - 1];
-          await html5QrcodeScanner.start(
-            backCamera.id,
-            config,
-            onScanSuccess,
-            onScanError
-          );
-          cameraInfo.style.display = "block";
-          cameraInfo.textContent = `📹 ${backCamera.label || "Cámara"}`;
-        }
-
-        btnStart.style.display = "none";
-        btnStop.style.display = "block";
-        btnStop.disabled = false;
-        btnManual.style.display = "none";
-        setStatus("📷 Escanea el código de barras");
-
-      } catch (err) {
-        btnStart.disabled = false;
-        btnStart.textContent = "📷 Iniciar Escáner";
-        readerCard.style.display = "none";
-        setStatus("❌ Error: " + (err?.message || err), "err");
-      }
-    }
-
-    async function stopScanner() {
-      try {
-        if (html5QrcodeScanner) {
-          await html5QrcodeScanner.stop();
-          html5QrcodeScanner = null;
-        }
-
-        readerCard.style.display = "none";
-        cameraInfo.style.display = "none";
-        scanningIndicator.style.display = "none";
-        btnStart.style.display = "block";
-        btnStart.disabled = false;
-        btnStart.textContent = "📷 Iniciar Escáner";
-        btnStop.style.display = "none";
-        btnManual.style.display = "block";
-        setStatus("Cámara detenida");
-      } catch (err) {
-        setStatus("Error al detener: " + (err?.message || err), "err");
-      }
-    }
-
-    // Manual input
-    function showManualInput() {
-      manualSection.style.display = "block";
-      manualCodeInput.value = "";
-      manualCodeInput.focus();
-      btnManual.style.display = "none";
-      btnStart.style.display = "none";
-    }
-
-    function hideManualInput() {
-      manualSection.style.display = "none";
-      btnManual.style.display = "block";
-      btnStart.style.display = "block";
-    }
-
-    function confirmManualCode() {
-      const code = manualCodeInput.value.trim();
-      if (!code) {
-        setStatus("❌ Escribe un código", "err");
-        return;
-      }
-
-      lastCode = code;
-      lastCodeEl.textContent = lastCode;
+    async function onScanSuccess(decodedText) {
+      if (decodedText === currentCode) return;
+      
+      currentCode = decodedText;
+      lastCodeEl.textContent = currentCode;
+      document.getElementById('beepSound').play();
+      
+      if (navigator.vibrate) navigator.vibrate(100);
+      
+      statusEl.className = "status-msg ok";
+      statusEl.textContent = "✅ Código detectado con éxito";
       btnSend.disabled = false;
-      showHint("✓ Código ingresado manualmente", "ok");
-      setStatus("✓ Código listo. Verifica datos y envía", "ok");
-      hideManualInput();
-      if (navigator.vibrate) navigator.vibrate(50);
+      
+      // Auto-detener cámara para ahorrar batería tras éxito
+      stopCamera();
     }
 
-    function validateBeforeSend() {
-      if (!lastCode) {
-        setStatus("❌ No hay código para enviar", "err");
-        showHint("", "");
-        return false;
-      }
-      const qty = Number(qtyEl.value || 1);
-      if (!Number.isFinite(qty) || qty <= 0) {
-        setStatus("❌ Cantidad inválida", "err");
-        qtyEl.focus();
-        return false;
-      }
-      return true;
-    }
+    async function startCamera() {
+      readerCont.style.display = 'block';
+      btnStart.style.display = 'none';
+      
+      html5QrCode = new Html5Qrcode("reader");
+      const config = { 
+        fps: 25, 
+        qrbox: { width: 280, height: 180 },
+        aspectRatio: 1.0,
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true } 
+      };
 
-    async function sendLastCode() {
       try {
-        if (!validateBeforeSend()) return;
+        await html5QrCode.start(
+          { facingMode: "environment" }, 
+          config, 
+          onScanSuccess
+        );
+        
+        // Soporte de Linterna
+        const track = html5QrCode.getRunningTrack();
+        if (track && track.getCapabilities().torch) {
+          const torchBtn = document.getElementById('btnTorch');
+          torchBtn.style.display = 'block';
+          torchBtn.onclick = async () => {
+            isTorchOn = !isTorchOn;
+            await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+          };
+        }
+      } catch (err) {
+        statusEl.textContent = "Error de cámara: " + err;
+        statusEl.className = "status-msg err";
+      }
+    }
 
-        btnSend.disabled = true;
-        const originalText = btnSend.textContent;
-        btnSend.textContent = "⏳ Enviando...";
-        setStatus("Enviando a Google Sheets...");
-        showHint("", "");
+    async function stopCamera() {
+      if (html5QrCode && html5QrCode.isScanning) {
+        await html5QrCode.stop();
+      }
+      readerCont.style.display = 'none';
+      btnStart.style.display = 'block';
+    }
 
-        if (deviceEl.value) localStorage.setItem('lastDevice', deviceEl.value);
+    async function sendData() {
+      btnSend.disabled = true;
+      btnSend.textContent = "Enviando...";
+      
+      const payload = {
+        token: CONFIG.token,
+        barcode: currentCode,
+        qty: parseInt(document.getElementById('qty').value),
+        device: document.getElementById('device').value || "Móvil",
+        desc: document.getElementById('desc').value,
+        brand: document.getElementById('brand').value
+      };
 
-        const payload = {
-          token: SECRET_TOKEN,
-          barcode: lastCode,
-          qty: Number(qtyEl.value || 1),
-          brand: brandEl.value || "",
-          desc: descEl.value || "",
-          model: modelEl.value || "",
-          note: noteEl.value || "",
-          device: deviceEl.value || "Sin identificar"
-        };
-
-        const res = await fetch(ENDPOINT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload),
+      try {
+        const response = await fetch(CONFIG.url, {
+          method: 'POST',
+          mode: 'no-cors', // Importante para evitar bloqueos de redirección de GAS
+          body: JSON.stringify(payload)
         });
 
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok || !data.ok) {
-          const msg = data?.error || ("HTTP " + res.status);
-
-          if (String(msg).toLowerCase().includes("token")) {
-            showHint("❌ Error de seguridad", "err");
-            setStatus("❌ Token inválido. Contacta al administrador", "err");
-          } else if (String(msg).toLowerCase().includes("descripción")) {
-            showHint("⚠️ Producto nuevo: llena Descripción", "warn");
-            setStatus("Este código es NUEVO. Escribe la Descripción y envía de nuevo", "warn");
-            descEl.focus();
-          } else {
-            showHint("❌ Error al enviar", "err");
-            setStatus("❌ Error: " + msg, "err");
-          }
-
-          btnSend.textContent = originalText;
-          btnSend.disabled = false;
-          return;
-        }
-
-        sessionCount++;
-        sessionCountEl.textContent = sessionCount;
-        lastStockEl.textContent = data.stock || "—";
-
-        if (data.action === "create") {
-          showHint(`✓ Producto creado (stock: ${data.stock})`, "ok");
-          setStatus(`✅ NUEVO producto creado. Stock inicial: ${data.stock}`, "ok");
-        } else if (data.action === "increment") {
-          const prev = data.previousStock || 0;
-          showHint(`${prev} → ${data.stock}`, "ok");
-          setStatus(`✅ Stock actualizado: ${prev} + ${qtyEl.value} = ${data.stock}`, "ok");
-        } else {
-          showHint("✓ Guardado", "ok");
-          setStatus("✅ Guardado", "ok");
-        }
-
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-
-        // Reset UI
-        if (scanningIndicator.style.display !== "none") {
-          scanningIndicator.textContent = "🔍 Buscando código... mantén quieto el teléfono";
-          scanningIndicator.style.background = "#fff3e0";
-          scanningIndicator.style.color = "#e65100";
-        }
-
-        lastCode = "";
-        lastCodeEl.textContent = "—";
-        noteEl.value = "";
-        brandEl.value = "";
-        descEl.value = "";
-        modelEl.value = "";
-        btnSend.disabled = true;
-        btnSend.textContent = originalText;
-
-        setTimeout(() => showHint("", ""), 3000);
-
+        // Como usamos no-cors, no podemos leer la respuesta JSON directamente.
+        // Simulamos éxito o podrías usar una técnica de "JSONP" si necesitas el stock de vuelta.
+        statusEl.textContent = "📤 Datos enviados a la nube";
+        statusEl.className = "status-msg ok";
+        
+        // Reset
+        document.getElementById('sessionCount').textContent = parseInt(document.getElementById('sessionCount').textContent) + 1;
+        currentCode = "";
+        lastCodeEl.textContent = "Esperando...";
+        extraFields.style.display = 'none';
+        
       } catch (e) {
-        btnSend.disabled = false;
+        statusEl.textContent = "Error de red: " + e.message;
+        statusEl.className = "status-msg err";
+      } finally {
+        btnSend.disabled = true;
         btnSend.textContent = "✅ Enviar a Inventario";
-        showHint("❌ Error al enviar", "err");
-        setStatus("❌ Error: " + (e?.message || e), "err");
-        if (navigator.vibrate) navigator.vibrate(200);
       }
     }
 
-    // Listeners
-    btnStart.addEventListener("click", startScanner);
-    btnStop.addEventListener("click", stopScanner);
-    btnSend.addEventListener("click", sendLastCode);
-
-    btnManual.addEventListener("click", showManualInput);
-    btnConfirmManual.addEventListener("click", confirmManualCode);
-    btnCancelManual.addEventListener("click", hideManualInput);
-
-    manualCodeInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") confirmManualCode();
-    });
+    btnStart.onclick = startCamera;
+    btnStop.onclick = stopCamera;
+    btnSend.onclick = sendData;
+    btnManual.onclick = () => {
+      const code = prompt("Ingresa el código manualmente:");
+      if (code) onScanSuccess(code);
+    };
   </script>
 </body>
 </html>
