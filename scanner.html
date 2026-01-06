@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Escáner Inventario</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 16px; max-width: 640px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+    button { padding: 10px 12px; border-radius: 10px; border: 1px solid #aaa; background: #fff; }
+    input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; }
+    video { width: 100%; border-radius: 12px; border: 1px solid #ddd; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .muted { color: #666; font-size: 13px; }
+    .ok { color: #0a7; }
+    .err { color: #b00; }
+  </style>
+</head>
+<body>
+  <h1>Escáner de códigos → Google Sheets</h1>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label class="muted">Cantidad</label>
+        <input id="qty" type="number" value="1" min="1" />
+      </div>
+      <div>
+        <label class="muted">Dispositivo</label>
+        <input id="device" type="text" placeholder="Ej. Mostrador 1" />
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <label class="muted">Nota (opcional)</label>
+      <input id="note" type="text" placeholder="Ej. Llegó en caja, marca X" />
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button id="btnStart">Iniciar cámara</button>
+      <button id="btnStop" disabled>Detener</button>
+      <button id="btnSend" disabled>Enviar último código</button>
+    </div>
+
+    <p class="muted" style="margin-top:10px;">
+      Código detectado: <strong id="lastCode">—</strong>
+    </p>
+    <p id="status" class="muted"></p>
+  </div>
+
+  <div class="card">
+    <video id="video" playsinline></video>
+  </div>
+
+  <!-- ZXing -->
+  <script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js"></script>
+  <script>
+    
+    const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzuewP1k1PXI44KLdlkAm25zS4QqHgkfzfRbbQV5G6xl6UZIOSfktjaPIEv0yx0otZc/exec";
+
+    const videoEl = document.getElementById("video");
+    const lastCodeEl = document.getElementById("lastCode");
+    const statusEl = document.getElementById("status");
+    const btnStart = document.getElementById("btnStart");
+    const btnStop = document.getElementById("btnStop");
+    const btnSend = document.getElementById("btnSend");
+
+    const qtyEl = document.getElementById("qty");
+    const noteEl = document.getElementById("note");
+    const deviceEl = document.getElementById("device");
+
+    let codeReader = null;
+    let lastCode = "";
+
+    function setStatus(msg, type="") {
+      statusEl.className = type ? type : "muted";
+      statusEl.textContent = msg;
+    }
+
+    async function startScanner() {
+      try {
+        if (ENDPOINT_URL === "ENDPOINT_URL") {
+          setStatus("Configura ENDPOINT_URL con tu URL de Apps Script.", "err");
+          return;
+        }
+
+        codeReader = new ZXingBrowser.BrowserMultiFormatReader();
+
+        setStatus("Iniciando cámara...");
+        btnStart.disabled = true;
+
+        const devices = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
+        const backCam = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[0];
+
+        await codeReader.decodeFromVideoDevice(
+          backCam ? backCam.deviceId : undefined,
+          videoEl,
+          (result, err) => {
+            if (result) {
+              const text = result.getText();
+              if (text && text !== lastCode) {
+                lastCode = text;
+                lastCodeEl.textContent = lastCode;
+                btnSend.disabled = false;
+                setStatus("Código leído. Puedes enviar.", "ok");
+                // vibración ligera si soporta
+                if (navigator.vibrate) navigator.vibrate(60);
+              }
+            }
+          }
+        );
+
+        btnStop.disabled = false;
+        setStatus("Cámara activa. Apunta al código.");
+      } catch (e) {
+        btnStart.disabled = false;
+        setStatus("Error al iniciar cámara: " + e.message, "err");
+      }
+    }
+
+    async function stopScanner() {
+      try {
+        if (codeReader) {
+          codeReader.reset();
+          codeReader = null;
+        }
+        btnStart.disabled = false;
+        btnStop.disabled = true;
+        setStatus("Cámara detenida.");
+      } catch (e) {
+        setStatus("Error al detener: " + e.message, "err");
+      }
+    }
+
+    async function sendLastCode() {
+      try {
+        if (!lastCode) {
+          setStatus("No hay código para enviar.", "err");
+          return;
+        }
+
+        setStatus("Enviando a Sheets...");
+        btnSend.disabled = true;
+
+        const payload = {
+          barcode: lastCode,
+          qty: Number(qtyEl.value || 1),
+          note: noteEl.value || "",
+          device: deviceEl.value || ""
+        };
+
+        const res = await fetch(ENDPOINT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || ("HTTP " + res.status));
+        }
+
+        setStatus("Guardado en Google Sheets: " + payload.barcode, "ok");
+
+        // listo para el siguiente escaneo
+        lastCode = "";
+        lastCodeEl.textContent = "—";
+        noteEl.value = "";
+      } catch (e) {
+        btnSend.disabled = false;
+        setStatus("Error al enviar: " + e.message, "err");
+      }
+    }
+
+    btnStart.addEventListener("click", startScanner);
+    btnStop.addEventListener("click", stopScanner);
+    btnSend.addEventListener("click", sendLastCode);
+  </script>
+</body>
+</html>
